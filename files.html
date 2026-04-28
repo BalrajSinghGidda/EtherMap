@@ -89,7 +89,7 @@ function mkRow(file){
     tbtn.disabled = true;
     tbtn.textContent = 'Generating…';
     try{
-      const res = await fetchJson('/files/temp', {method:'POST', body: JSON.stringify({name: file.name, ttl: 300}), headers: {'Content-Type':'application/json'}});
+      const res = await fetchJson('/api/files/temp', {method:'POST', body: JSON.stringify({name: file.name, ttl: 300}), headers: {'Content-Type':'application/json'}});
       if(res.ok && res.url){ window.open(res.url, '_blank'); tbtn.textContent = 'Opened'; setStatus('Temporary download link created.', false); }
       else { setStatus('Could not create temporary link.', true); tbtn.textContent = 'Temp link'; }
     }catch(err){ setStatus('Error creating temporary link: '+err.message, true); tbtn.textContent = 'Temp link'; }
@@ -144,7 +144,7 @@ async function loadFiles(){
 }
 
 document.getElementById('refresh').addEventListener('click', loadFiles);
-document.getElementById('logout').addEventListener('click', async (e) => { e.preventDefault(); try{ await fetch('/logout', {method:'POST', credentials:'include'}); }catch{}; window.location.href='/login';});
+document.getElementById('logout').addEventListener('click', async (e) => { e.preventDefault(); try{ await fetch('/api/auth/logout', {method:'POST', credentials:'include'}); }catch{}; window.location.href='/login';});
 
 loadFiles();
 </script>

@@ -92,7 +92,7 @@ document.getElementById('loginBtn').onclick = async () => {
   btn.textContent = "Logging in…";
 
   try{
-    const r = await fetch("/login", {
+    const r = await fetch("/api/auth/login", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ username:u, password:p }),

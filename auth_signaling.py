@@ -4,9 +4,12 @@
 # Usage: pip install flask-socketio eventlet
 # Run: python3 auth_signaling.py
 
-from flask import Flask, session, request
+import json
+import os
+import time
+
+from flask import Flask, request, session
 from flask_socketio import SocketIO, emit, join_room, leave_room
-import os, json, time
 
 EVENT_LOG = "events.log"
 
@@ -52,7 +55,11 @@ def on_disconnect():
     for room, members in list(room_members.items()):
         if sid in members:
             members.discard(sid)
-            emit("room_presence", {"channel": room, "members": sorted(list(members))}, room=room)
+            emit(
+                "room_presence",
+                {"channel": room, "members": sorted(list(members))},
+                room=room,
+            )
             if not members:
                 room_members.pop(room, None)
     emit_event("client_disconnected", {"ip": sid})
@@ -88,7 +95,10 @@ def join_channel(data):
         )
         emit(
             "room_history",
-            {"channel": room, "messages": room_history.get(room, [])[-MAX_ROOM_HISTORY:]},
+            {
+                "channel": room,
+                "messages": room_history.get(room, [])[-MAX_ROOM_HISTORY:],
+            },
         )
 
 

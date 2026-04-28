@@ -7,7 +7,6 @@ import subprocess
 import sys
 import time
 
-
 ROOT = os.path.dirname(os.path.abspath(__file__))
 EVENTS_SERVER = os.path.join(ROOT, "events-server.py")
 SIGNALING_SERVER = os.path.join(ROOT, "auth_signaling.py")

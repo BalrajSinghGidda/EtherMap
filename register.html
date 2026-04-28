@@ -92,7 +92,7 @@ document.getElementById('regBtn').onclick = async () => {
   btn.textContent = "Registering…";
 
   try{
-    const r = await fetch("/register", {
+    const r = await fetch("/api/auth/register", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ username:u, password:p }),

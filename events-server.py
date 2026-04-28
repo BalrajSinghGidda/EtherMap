@@ -8,21 +8,27 @@
 # - /log_event accepts anonymous events (for netcat/raw clients)
 # - Web UI routes (/ , /upload, /files, /viewer.html) require login and redirect to /login
 
+import json
+import os
+import secrets
+import sqlite3
+import threading
+import time
+from datetime import datetime, timezone
+
 from flask import (
     Flask,
-    request,
     Response,
-    stream_with_context,
-    send_from_directory,
-    jsonify,
-    session,
-    g,
     abort,
+    g,
+    jsonify,
     redirect,
+    request,
+    send_from_directory,
+    session,
+    stream_with_context,
 )
-import os, time, json, threading, secrets, sqlite3
-from datetime import datetime, timezone
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # ---------- Config ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) or "."
@@ -212,7 +218,8 @@ def close_db(error):
 
 def init_db():
     db = get_db()
-    db.executescript("""
+    db.executescript(
+        """
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -230,7 +237,8 @@ def init_db():
       last_seen INTEGER,
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
-    """)
+    """
+    )
     cols = [r["name"] for r in db.execute("PRAGMA table_info(devices)").fetchall()]
     if "device_type" not in cols:
         db.execute("ALTER TABLE devices ADD COLUMN device_type TEXT")
@@ -267,7 +275,7 @@ def sse():
 
 
 # Provide a lightweight state endpoint (protected since it may reveal user info)
-@app.route("/state")
+@app.route("/api/state")
 @login_required
 def state():
     if not os.path.exists(STATE_FILE):
@@ -302,7 +310,7 @@ def viewer_page():
 
 
 # ---------- Auth endpoints ----------
-@app.route("/register", methods=["POST"])
+@app.route("/api/auth/register", methods=["POST"])
 def api_register():
     data = request.get_json(force=True)
     username = (data.get("username") or "").strip()
@@ -322,7 +330,7 @@ def api_register():
         return jsonify({"ok": False, "error": "user exists"}), 409
 
 
-@app.route("/login", methods=["POST"])
+@app.route("/api/auth/login", methods=["POST"])
 def api_login():
     data = request.get_json(force=True)
     username = (data.get("username") or "").strip()
@@ -337,7 +345,10 @@ def api_login():
         append_event(
             {
                 "type": "auth_failed",
-                "detail": {"username": username, "ip": request.remote_addr or "unknown"},
+                "detail": {
+                    "username": username,
+                    "ip": request.remote_addr or "unknown",
+                },
             }
         )
         return jsonify({"ok": False, "error": "bad"}), 401
@@ -353,7 +364,7 @@ def api_login():
     return jsonify({"ok": True, "user_id": row["id"], "username": username})
 
 
-@app.route("/logout", methods=["POST", "GET"])
+@app.route("/api/auth/logout", methods=["POST", "GET"])
 def api_logout():
     session.clear()
     if request.method == "GET":
@@ -361,7 +372,7 @@ def api_logout():
     return jsonify({"ok": True})
 
 
-@app.route("/me")
+@app.route("/api/auth/me")
 @login_required
 def api_me():
     uid = session.get("user_id")
@@ -375,9 +386,9 @@ def api_me():
 
 
 # ---------- Devices endpoints (protected) ----------
-@app.route("/devices/register", methods=["POST"])
+@app.route("/api/devices/register", methods=["POST"])
 @login_required
-def devices_register():
+def api_devices_register():
     data = request.get_json(force=True)
     client_id = (data.get("client_id") or "").strip()
     name = (data.get("name") or "").strip()
@@ -419,9 +430,9 @@ def devices_register():
     return jsonify({"ok": True})
 
 
-@app.route("/devices/list")
+@app.route("/api/devices/list")
 @login_required
-def devices_list():
+def api_devices_list():
     uid = session["user_id"]
     db = get_db()
     rows = db.execute(
@@ -442,9 +453,9 @@ def devices_list():
     return jsonify({"ok": True, "devices": devices})
 
 
-@app.route("/devices/profile", methods=["POST"])
+@app.route("/api/devices/profile", methods=["POST"])
 @login_required
-def devices_profile():
+def api_devices_profile():
     data = request.get_json(force=True)
     client_id = (data.get("client_id") or "").strip()
     if not client_id:
@@ -462,9 +473,9 @@ def devices_profile():
     return jsonify({"ok": True})
 
 
-@app.route("/devices/delete", methods=["POST"])
+@app.route("/api/devices/delete", methods=["POST"])
 @login_required
-def devices_delete():
+def api_devices_delete():
     data = request.get_json(force=True)
     client_id = (data.get("client_id") or "").strip()
     if not client_id:
@@ -488,8 +499,8 @@ def devices_delete():
 
 
 # ---------- Event logging (open) ----------
-@app.route("/log_event", methods=["POST"])
-def log_event():
+@app.route("/api/events/log", methods=["POST"])
+def api_log_event():
     # Accept anonymous events (from netcat/raw clients) and authenticated ones alike
     try:
         data = request.get_json(force=True)
@@ -549,6 +560,7 @@ def upload():
     if os.path.exists(os.path.join(".", "upload.html")):
         return send_from_directory(".", "upload.html")
     return '<html><body><h1>Upload</h1><form method="post" enctype="multipart/form-data"><input type=file name=file><input type=submit></form></body></html>'
+
 
 def collect_upload_files():
     entries = sorted(
@@ -647,7 +659,9 @@ def analytics_api():
     now = time.time()
     for evt in events:
         detail = evt.get("detail") or {}
-        src = str(detail.get("src") or detail.get("ip") or detail.get("client_id") or "")
+        src = str(
+            detail.get("src") or detail.get("ip") or detail.get("client_id") or ""
+        )
         evt_type = evt.get("type") or "unknown"
         size = int(detail.get("size") or 0)
         ts = parse_ts(evt.get("ts")) or now
@@ -799,7 +813,7 @@ def serve_file(name):
     return send_from_directory(UPLOAD_DIR, name, as_attachment=True)
 
 
-@app.route("/files/temp", methods=["POST"])
+@app.route("/api/files/temp", methods=["POST"])
 @login_required
 def create_temp_link():
     data = request.get_json(force=True)
@@ -812,11 +826,11 @@ def create_temp_link():
         return jsonify({"ok": False, "error": "file not found"}), 404
     ttl = int(data.get("ttl", 60))
     token, expires = make_token(name, ttl)
-    url = f"/files/temp/{token}"
+    url = f"/api/files/temp/{token}"
     return jsonify({"ok": True, "url": url, "expires": int(expires)})
 
 
-@app.route("/files/temp/<token>")
+@app.route("/api/files/temp/<token>")
 def serve_temp(token):
     name = validate_token(token)
     if not name:

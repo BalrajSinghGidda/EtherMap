@@ -90,3 +90,16 @@
 {"ts": "2026-04-28T23:36:20", "type": "client_connected", "detail": {"ip": "LQqN5k2YZQVezWDhAAAP", "user": 1}}
 {"ts": "2026-04-28T23:36:20", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}
 {"ts": "2026-04-28T23:36:20", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "src": "727py2-j39iyz", "dst": "SERVER", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-28T23:37:23", "type": "client_disconnected", "detail": {"ip": "LQqN5k2YZQVezWDhAAAP"}}
+{"ts": "2026-04-28T23:37:23", "type": "client_connected", "detail": {"ip": "dDAZoECe1LKj_tlkAAAR", "user": 1}}
+{"ts": "2026-04-28T23:37:23", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-28T23:37:23", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "src": "727py2-j39iyz", "dst": "SERVER", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-28T23:37:25", "type": "client_disconnected", "detail": {"ip": "dDAZoECe1LKj_tlkAAAR"}}
+{"ts": "2026-04-28T23:37:58", "type": "auth_success", "detail": {"username": "balraj", "ip": "127.0.0.1"}}
+{"ts": "2026-04-28T23:37:59", "type": "client_connected", "detail": {"ip": "YYsRxSTvgBekumjWAAAT", "user": 1}}
+{"ts": "2026-04-28T23:37:59", "type": "client_connected", "detail": {"ip": "2xn8ow-j9nzbl", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-28T23:37:59", "type": "client_connected", "detail": {"ip": "2xn8ow-j9nzbl", "src": "2xn8ow-j9nzbl", "dst": "SERVER", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-28T23:42:27", "type": "client_disconnected", "detail": {"ip": "YYsRxSTvgBekumjWAAAT"}}
+{"ts": "2026-04-28T23:50:18", "type": "auth_success", "detail": {"username": "testuser", "ip": "127.0.0.1"}}
+{"ts": "2026-04-28T23:50:29", "type": "auth_success", "detail": {"username": "testuser", "ip": "127.0.0.1"}}
+{"ts": "2026-04-28T23:50:29", "type": "put_done", "detail": {"ip": "127.0.0.1", "src": "127.0.0.1", "dst": "SERVER", "direction": "upload", "file": "testfile.txt", "size": 15}}

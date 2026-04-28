@@ -174,7 +174,7 @@ function apiFetch(url, opts){
 }
 
 function sendLog(evt){
-  fetch('/log_event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evt),credentials:'include'}).catch(()=>{});
+  fetch('/api/events/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evt),credentials:'include'}).catch(()=>{});
 }
 
 function addAlert(text){
@@ -407,7 +407,7 @@ function replayTo(index){
 
 async function checkAuthOrRedirect(){
   try{
-    const me = await apiFetch('/me',{method:'GET'});
+    const me = await apiFetch('/api/auth/me',{method:'GET'});
     if(!me || !me.ok){ location.href = '/login'; return null; }
     CURRENT_USER = me;
     return me;
@@ -416,7 +416,7 @@ async function checkAuthOrRedirect(){
 
 async function fetchDevices(){
   try{
-    const j = await apiFetch('/devices/list');
+    const j = await apiFetch('/api/devices/list');
     renderDevices(j.devices || []);
   } catch(e){
     document.getElementById('devicesList').innerHTML = '<div class="muted">Device listing unavailable.</div>';
@@ -441,7 +441,7 @@ function renderDevices(devs){
       const icon = prompt('Device icon (emoji)', d.icon || '💻');
       if(icon === null) return;
       try{
-        await apiFetch('/devices/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:d.client_id,name,device_type:deviceType,icon})});
+        await apiFetch('/api/devices/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:d.client_id,name,device_type:deviceType,icon})});
         setUiStatus('Device profile updated.');
         fetchDevices();
       } catch(e){ setUiStatus('Could not update profile.', true); }
@@ -451,7 +451,7 @@ function renderDevices(devs){
     removeBtn.onclick = async () => {
       if(!confirm(`Remove ${d.name || d.client_id}?`)) return;
       try{
-        const res = await apiFetch('/devices/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:d.client_id})});
+        const res = await apiFetch('/api/devices/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:d.client_id})});
         if(res && res.ok){
           setUiStatus('Device removed.');
           graph.removeNode(d.client_id);
@@ -478,7 +478,7 @@ async function autoRegisterDevice(){
     icon: /android|iphone/i.test(navigator.userAgent) ? '📱' : '💻',
   };
   try{
-    await apiFetch('/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(defaults)});
+    await apiFetch('/api/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(defaults)});
     sendLog({type:'client_connected', detail:{ip:CLIENT_ID,src:CLIENT_ID,dst:'SERVER',name:defaults.name,device_type:defaults.device_type,icon:defaults.icon}});
   } catch(e){}
 }
@@ -568,7 +568,7 @@ document.getElementById('registerDevice').addEventListener('click', async ()=>{
   const device_type = prompt('Device type', 'client') || 'client';
   const icon = prompt('Device icon', '💻') || '💻';
   try{
-    await apiFetch('/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,name,device_type,icon})});
+    await apiFetch('/api/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,name,device_type,icon})});
     sendLog({type:'client_connected',detail:{ip:CLIENT_ID,src:CLIENT_ID,dst:'SERVER',name,device_type,icon}});
     fetchDevices();
   } catch(e){ setUiStatus('Could not register device.', true); }
@@ -609,7 +609,7 @@ document.getElementById('sendMsg').addEventListener('click', ()=>{
 
 document.getElementById('logoutLink').addEventListener('click', async (ev)=>{
   ev.preventDefault();
-  try{ await apiFetch('/logout',{method:'POST'});}catch(e){}
+  try{ await apiFetch('/api/auth/logout',{method:'POST'});}catch(e){}
   location.href = '/login';
 });
 

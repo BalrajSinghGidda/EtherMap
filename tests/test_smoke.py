@@ -26,10 +26,12 @@ def load_events_server(tmp_path: Path):
 
 def login(client, username="demo", password="demo-pass"):
     reg = client.post(
-        "/register", json={"username": username, "password": password}
+        "/api/auth/register", json={"username": username, "password": password}
     )
     assert reg.status_code == 200
-    resp = client.post("/login", json={"username": username, "password": password})
+    resp = client.post(
+        "/api/auth/login", json={"username": username, "password": password}
+    )
     assert resp.status_code == 200
     assert resp.get_json()["ok"] is True
 
@@ -39,7 +41,7 @@ def test_auth_flow(tmp_path):
     client = module.app.test_client()
 
     login(client)
-    me = client.get("/me")
+    me = client.get("/api/auth/me")
     assert me.status_code == 200
     body = me.get_json()
     assert body["ok"] is True
@@ -64,7 +66,7 @@ def test_upload_files_and_temp_link(tmp_path):
     names = [f["name"] for f in files.get_json()["files"]]
     assert "hello.txt" in names
 
-    temp = client.post("/files/temp", json={"name": "hello.txt", "ttl": 300})
+    temp = client.post("/api/files/temp", json={"name": "hello.txt", "ttl": 300})
     assert temp.status_code == 200
     temp_url = temp.get_json()["url"]
 
@@ -82,7 +84,7 @@ def test_event_log_updates_state(tmp_path):
         "type": "put_start",
         "detail": {"ip": "client-42", "file": "x.bin", "size": 9},
     }
-    resp = client.post("/log_event", json=event)
+    resp = client.post("/api/events/log", json=event)
     assert resp.status_code == 200
     assert resp.get_json()["ok"] is True
 
@@ -91,7 +93,7 @@ def test_event_log_updates_state(tmp_path):
     assert last["type"] == "put_start"
     assert last["detail"]["ip"] == "client-42"
 
-    state = client.get("/state")
+    state = client.get("/api/state")
     assert state.status_code == 200
     nodes = state.get_json()["nodes"]
     assert any(n["ip"] == "client-42" and n["state"] == "transferring" for n in nodes)
