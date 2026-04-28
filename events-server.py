@@ -462,6 +462,31 @@ def devices_profile():
     return jsonify({"ok": True})
 
 
+@app.route("/devices/delete", methods=["POST"])
+@login_required
+def devices_delete():
+    data = request.get_json(force=True)
+    client_id = (data.get("client_id") or "").strip()
+    if not client_id:
+        return jsonify({"ok": False, "error": "missing client_id"}), 400
+    uid = session["user_id"]
+    db = get_db()
+    cur = db.execute(
+        "DELETE FROM devices WHERE user_id=? AND client_id=?",
+        (uid, client_id),
+    )
+    db.commit()
+    if cur.rowcount == 0:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    append_event(
+        {
+            "type": "device_removed",
+            "detail": {"ip": client_id, "src": client_id, "dst": "SERVER"},
+        }
+    )
+    return jsonify({"ok": True})
+
+
 # ---------- Event logging (open) ----------
 @app.route("/log_event", methods=["POST"])
 def log_event():

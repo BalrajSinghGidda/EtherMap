@@ -18,20 +18,20 @@
   .topnav a { text-decoration:none; color:var(--pine); font-weight:700; margin-left:14px; }
   .topnav a.active { color:var(--rose); }
   .app { display:grid; grid-template-columns: 1fr 420px; gap:12px; height:calc(100vh - 72px); padding:86px 12px 12px; box-sizing:border-box; }
-  .card { background:var(--surface); border:1px solid var(--glass); border-radius:12px; box-shadow:0 8px 24px rgba(11,9,12,0.35); }
+  .card { background:var(--surface); border:1px solid var(--glass); border-radius:0; box-shadow:none; }
   .canvas { display:flex; flex-direction:column; padding:12px; }
   .panel { padding:12px; overflow:auto; display:flex; flex-direction:column; gap:10px; }
   #viz { width:100%; height:100%; min-height:360px; }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .stat { display:flex; justify-content:space-between; padding:8px; border-radius:8px; background:var(--overlay); border:1px solid var(--glass); font-size:13px; }
+  .stat { display:flex; justify-content:space-between; padding:8px; border-radius:0; background:var(--overlay); border:1px solid var(--glass); font-size:13px; }
   .muted { color:var(--muted); font-size:12px; }
-  button, input, select { background:var(--overlay); color:var(--text); border:1px solid var(--glass); border-radius:8px; padding:6px 8px; }
+  button, input, select { background:var(--overlay); color:var(--text); border:1px solid var(--glass); border-radius:0; padding:6px 8px; }
   button { background:var(--pine); cursor:pointer; font-weight:700; }
   button:hover { background:var(--foam); color:var(--base); }
-  #log, #alerts, #chatLog, #devicesList { max-height:180px; overflow:auto; border:1px solid var(--glass); border-radius:8px; background:var(--overlay); padding:8px; }
+  #log, #alerts, #chatLog, #devicesList { max-height:180px; overflow:auto; border:1px solid var(--glass); border-radius:0; background:var(--overlay); padding:8px; }
   .device-row { display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--glass); }
   .device-row:last-child { border-bottom:none; }
-  .chip { display:inline-block; padding:2px 6px; border-radius:999px; background:var(--overlay); border:1px solid var(--glass); font-size:11px; color:var(--muted); }
+  .chip { display:inline-block; padding:2px 6px; border-radius:0; background:var(--overlay); border:1px solid var(--glass); font-size:11px; color:var(--muted); }
   .link-passive { stroke: var(--muted); stroke-width:1.5; opacity:.5; }
   .link-active { stroke: var(--rose); stroke-width:3; opacity:.95; }
   .state-connected { fill: var(--foam); }
@@ -39,6 +39,11 @@
   .state-idle { fill: var(--muted); }
   .state-error { fill: var(--love); }
   .node-label { fill: var(--text); font-size:12px; }
+  details.section { border:1px solid var(--glass); border-radius:0; background:var(--overlay); }
+  details.section > summary { list-style:none; cursor:pointer; padding:8px 10px; font-weight:700; color:var(--subtle); }
+  details.section > summary::-webkit-details-marker { display:none; }
+  details.section[open] > summary { color:var(--foam); border-bottom:1px solid var(--glass); }
+  .section-body { padding:8px; display:flex; flex-direction:column; gap:8px; }
   @media (max-width:1100px){ .app{ grid-template-columns:1fr; } .panel{ max-height:45vh; } }
 </style>
 </head>
@@ -86,33 +91,53 @@
     <div class="stat"><span>Total bytes</span><strong id="bytes_total">0</strong></div>
     <div class="stat"><span>Burst(20s)</span><strong id="burst_20s">0</strong></div>
 
-    <div style="font-weight:700;color:var(--subtle)">Devices (profiles)</div>
-    <div class="row">
-      <button id="refreshDevices">Refresh</button>
-      <button id="registerDevice">Register this device</button>
-    </div>
-    <div id="devicesList"></div>
+    <details class="section" open>
+      <summary>Devices (profiles)</summary>
+      <div class="section-body">
+        <div class="row">
+          <button id="refreshDevices">Refresh</button>
+          <button id="registerDevice">Register this device</button>
+        </div>
+        <div id="devicesList"></div>
+      </div>
+    </details>
 
-    <div style="font-weight:700;color:var(--subtle)">Alerts</div>
-    <div id="alerts"></div>
+    <details class="section">
+      <summary>Alerts</summary>
+      <div class="section-body">
+        <div id="alerts"></div>
+      </div>
+    </details>
 
-    <div style="font-weight:700;color:var(--subtle)">Analytics Top Talkers</div>
-    <div id="analyticsList" class="muted"></div>
+    <details class="section">
+      <summary>Analytics Top Talkers</summary>
+      <div class="section-body">
+        <div id="analyticsList" class="muted"></div>
+      </div>
+    </details>
 
-    <div style="font-weight:700;color:var(--subtle)">Room chat (Signaling)</div>
-    <div class="row">
-      <input id="roomInput" placeholder="room name" value="demo-room" style="flex:1">
-      <button id="joinRoom">Join</button>
-      <span class="chip" id="roomPresence">0 members</span>
-    </div>
-    <div id="chatLog"></div>
-    <div class="row">
-      <input id="chatMsg" placeholder="message" style="flex:1">
-      <button id="sendMsg">Send</button>
-    </div>
+    <details class="section">
+      <summary>Room chat (Signaling)</summary>
+      <div class="section-body">
+        <div class="row">
+          <input id="roomInput" placeholder="room name" value="demo-room" style="flex:1">
+          <button id="joinRoom">Join</button>
+          <span class="chip" id="roomPresence">0 members</span>
+        </div>
+        <div id="chatLog"></div>
+        <div class="row">
+          <input id="chatMsg" placeholder="message" style="flex:1">
+          <button id="sendMsg">Send</button>
+        </div>
+      </div>
+    </details>
 
-    <div style="font-weight:700;color:var(--subtle)">Event log</div>
-    <div id="log"></div>
+    <details class="section">
+      <summary>Event log</summary>
+      <div class="section-body">
+        <div id="log"></div>
+      </div>
+    </details>
     <div id="ui_status" class="muted"></div>
   </div>
 </div>
@@ -243,6 +268,20 @@ function initViz(){
     redraw();
   }
 
+  function removeNode(id){
+    if(!id || id === 'SERVER') return;
+    if(!nodesMap.has(id)) return;
+    const node = nodesMap.get(id);
+    const remainingLinks = links.filter(l => l.source !== node && l.target !== node);
+    links.splice(0, links.length, ...remainingLinks);
+    linksMap.clear();
+    links.forEach(l => linksMap.set(l.id, l));
+    const remainingNodes = nodes.filter(n => n !== node);
+    nodes.splice(0, nodes.length, ...remainingNodes);
+    nodesMap.delete(id);
+    redraw();
+  }
+
   function resetGraph(){
     links.splice(0, links.length);
     nodes.splice(0, nodes.length);
@@ -252,7 +291,7 @@ function initViz(){
     redraw();
   }
 
-  graph = {upsertNode, setNodeState, upsertEdge, resetGraph};
+  graph = {upsertNode, setNodeState, upsertEdge, removeNode, resetGraph};
   upsertNode('SERVER','SERVER');
 }
 initViz();
@@ -289,6 +328,19 @@ function resetDerivedState(){
   Object.keys(authFailRecent).forEach(k=>delete authFailRecent[k]);
   alerts.length = 0;
   document.getElementById('alerts').innerHTML = '<span class="muted">No alerts.</span>';
+}
+
+function resetLiveView(){
+  replayMode = false;
+  eventsPaused = false;
+  if(replayTimer){ clearInterval(replayTimer); replayTimer = null; }
+  eventHistory.length = 0;
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+  graph.resetGraph();
+  resetDerivedState();
+  updateTimelineUI();
+  document.getElementById('pause').textContent = 'Pause';
 }
 
 function handleRules(evt){
@@ -331,6 +383,8 @@ function applyEvent(evt, record){
     graph.upsertEdge(src, dst || 'SERVER', d.direction || t, false);
   } else if(t === 'client_disconnected'){
     graph.setNodeState(src,'idle',d.name || src);
+  } else if(t === 'device_removed'){
+    graph.removeNode(src);
   } else if(t === 'error'){
     graph.setNodeState(src,'error',d.name || src);
   } else if(t === 'client_connected' || t === 'viewer_connected'){
@@ -377,9 +431,9 @@ function renderDevices(devs){
     const row = document.createElement('div');
     row.className = 'device-row';
     row.innerHTML = `<div>${escapeHtml(d.icon || '💻')} <strong>${escapeHtml(d.name || d.client_id)}</strong><div class="muted">${escapeHtml(d.client_id)} · ${escapeHtml(d.device_type || 'client')}</div></div>`;
-    const btn = document.createElement('button');
-    btn.textContent = 'Edit';
-    btn.onclick = async () => {
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = async () => {
       const name = prompt('Device name', d.name || d.client_id);
       if(name === null) return;
       const deviceType = prompt('Device type (client/server/mobile/iot)', d.device_type || 'client');
@@ -392,7 +446,26 @@ function renderDevices(devs){
         fetchDevices();
       } catch(e){ setUiStatus('Could not update profile.', true); }
     };
-    row.appendChild(btn);
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = 'Remove';
+    removeBtn.onclick = async () => {
+      if(!confirm(`Remove ${d.name || d.client_id}?`)) return;
+      try{
+        const res = await apiFetch('/devices/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:d.client_id})});
+        if(res && res.ok){
+          setUiStatus('Device removed.');
+          graph.removeNode(d.client_id);
+          fetchDevices();
+        } else {
+          setUiStatus('Device not removed.', true);
+        }
+      } catch(e){
+        const msg = (e && e.error) ? e.error : 'Could not remove device.';
+        setUiStatus(msg, true);
+      }
+    };
+    row.appendChild(editBtn);
+    row.appendChild(removeBtn);
     wrap.appendChild(row);
   });
 }
@@ -420,6 +493,18 @@ async function pullAnalytics(){
 
 function escapeHtml(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
+function setupSidebarSections(){
+  const sections = Array.from(document.querySelectorAll('.panel details.section'));
+  sections.forEach((section) => {
+    section.addEventListener('toggle', () => {
+      if(!section.open) return;
+      sections.forEach((other) => {
+        if(other !== section) other.open = false;
+      });
+    });
+  });
+}
+
 // SSE live feed
 const es = new EventSource('/events');
 es.onopen = () => { document.getElementById('conn_status').textContent = 'connected'; };
@@ -442,9 +527,7 @@ document.getElementById('playReplay').addEventListener('click', ()=>{
   }, 450);
 });
 document.getElementById('resumeLive').addEventListener('click', ()=>{
-  replayMode = false;
-  replayTo(eventHistory.length - 1);
-  replayMode = false;
+  resetLiveView();
   setUiStatus('Live mode resumed.');
 });
 document.getElementById('pause').addEventListener('click', (e)=>{
@@ -531,6 +614,7 @@ document.getElementById('logoutLink').addEventListener('click', async (ev)=>{
 });
 
 (async function boot(){
+  setupSidebarSections();
   const me = await checkAuthOrRedirect();
   if(!me) return;
   graph.resetGraph();
