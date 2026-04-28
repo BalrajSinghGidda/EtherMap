@@ -4,19 +4,19 @@
 
 ### 1. events-server.py
 
+* Handles authentication (login/register/logout)
+* Manages per-user device registration/listing
 * Handles file uploads
 * Logs events
 * Provides SSE endpoint for real-time updates
 
 ### 2. auth_signaling.py
 
-* Handles authentication (login/register)
-* Manages devices
-* Provides Socket.IO signaling and chat
+* Provides Socket.IO signaling and channel chat
 
 ### 3. server.py
 
-* Runs both servers together
+* Starts both servers together
 * Entry point of the application
 
 ---
@@ -63,4 +63,3 @@
 * Not production secure
 * Designed for demo purposes
 * Minimal error handling
-

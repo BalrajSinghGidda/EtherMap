@@ -33,9 +33,9 @@ It combines live event streaming, file transfer, authentication, and device trac
 
 ```
 EtherMap/
-├── auth_signaling.py       # Authentication + Socket.IO signaling server
-├── events-server.py        # File uploads + SSE event stream
-├── server.py               # Runs both servers
+├── auth_signaling.py       # Socket.IO signaling/chat server
+├── events-server.py        # Auth + uploads + SSE event stream
+├── server.py               # Starts both servers for demo
 ├── viewer.html             # Network visualization UI
 ├── upload.html             # File upload interface
 ├── login.html              # Login page
@@ -75,10 +75,10 @@ git clone https://github.com/your-username/EtherMap.git
 cd EtherMap
 ```
 
-### 2. Install dependencies
+### 2. Enter dev shell
 
 ```bash
-pip install -r requirements.txt
+nix develop
 ```
 
 ### 3. Run the server
@@ -89,16 +89,16 @@ python server.py
 
 ### 4. Open in browser
 
-* `viewer.html` → Network visualization
-* `upload.html` → Upload files
-* `login.html` → Authentication
+* `http://127.0.0.1:5000/` → Network visualization
+* `http://127.0.0.1:5000/upload` → Upload files
+* `http://127.0.0.1:5000/login` → Authentication
 
 ---
 
 ## 🎯 Demo Flow (Recommended)
 
-1. Open **viewer.html**
-2. Login via **login.html**
+1. Open **http://127.0.0.1:5000/**
+2. Login via **/login**
 3. Upload a file
 4. Watch the network update live
 
@@ -131,4 +131,3 @@ Student | Developer | Builder of things that shouldn't exist (but do anyway)
 ## 🌌 Tagline
 
 > *Where Connections Take Shape.*
-

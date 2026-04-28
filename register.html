@@ -75,12 +75,21 @@ function err(msg){
   e.textContent=msg;
   e.style.display='block';
 }
+function clearErr(){
+  const e=document.getElementById('err');
+  e.textContent='';
+  e.style.display='none';
+}
 
 document.getElementById('regBtn').onclick = async () => {
+  const btn = document.getElementById('regBtn');
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
 
   if(!u || !p) return err("Please fill all fields.");
+  clearErr();
+  btn.disabled = true;
+  btn.textContent = "Registering…";
 
   try{
     const r = await fetch("/register", {
@@ -95,12 +104,15 @@ document.getElementById('regBtn').onclick = async () => {
       location.href = "/login";
     } else {
       err(j.error || "Registration failed.");
+      btn.disabled = false;
+      btn.textContent = "Register";
     }
   } catch(e2){
     err("Network error.");
+    btn.disabled = false;
+    btn.textContent = "Register";
   }
 };
 </script>
 </body>
 </html>
-

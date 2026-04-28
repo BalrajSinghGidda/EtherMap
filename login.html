@@ -75,12 +75,21 @@ function err(msg){
   e.textContent=msg;
   e.style.display='block';
 }
+function clearErr(){
+  const e=document.getElementById('err');
+  e.textContent='';
+  e.style.display='none';
+}
 
 document.getElementById('loginBtn').onclick = async () => {
+  const btn = document.getElementById('loginBtn');
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
 
   if(!u || !p) return err("Please fill all fields.");
+  clearErr();
+  btn.disabled = true;
+  btn.textContent = "Logging in…";
 
   try{
     const r = await fetch("/login", {
@@ -96,12 +105,15 @@ document.getElementById('loginBtn').onclick = async () => {
       location.href = "/";
     } else {
       err("Incorrect username or password.");
+      btn.disabled = false;
+      btn.textContent = "Log in";
     }
   } catch(e2){
     err("Network error.");
+    btn.disabled = false;
+    btn.textContent = "Log in";
   }
 };
 </script>
 </body>
 </html>
-

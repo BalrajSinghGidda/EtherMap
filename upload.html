@@ -46,6 +46,7 @@ button{background:var(--pine);color:white;border:none;padding:10px 18px;border-r
     </div>
 
     <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+    <div id="status" style="margin-top:10px;text-align:center;color:var(--muted);font-size:0.95rem;"></div>
 
     <div class="footer">
       <a class="link" href="/">← Back to Visualization</a>
@@ -59,10 +60,16 @@ function getClientId(){ try{ let id=localStorage.getItem('client_id'); if(!id){ 
 const uploadBtn = document.getElementById('uploadBtn');
 const fileInput = document.getElementById('fileInput');
 const bar = document.getElementById('bar');
+const statusEl = document.getElementById('status');
+
+function setStatus(msg, isError){
+  statusEl.textContent = msg || '';
+  statusEl.style.color = isError ? 'var(--rose)' : 'var(--muted)';
+}
 
 uploadBtn.addEventListener('click', () => {
   const f = fileInput.files[0];
-  if(!f){ alert('Choose a file first'); return; }
+  if(!f){ setStatus('Choose a file first.', true); return; }
   const client_id = getClientId();
   const form = new FormData();
   form.append('file', f);
@@ -71,14 +78,17 @@ uploadBtn.addEventListener('click', () => {
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '/upload', true);
   xhr.withCredentials = true;
+  uploadBtn.disabled = true;
+  setStatus('Uploading…', false);
   xhr.upload.onprogress = (e) => {
     if(e.lengthComputable){ const pct = Math.round((e.loaded / e.total) * 100); bar.style.width = pct + '%'; }
   };
   xhr.onload = () => {
-    if(xhr.status >= 200 && xhr.status < 300){ alert('Uploaded'); bar.style.width = '100%'; setTimeout(()=>bar.style.width='0%',600); }
-    else { alert('Upload failed: ' + xhr.statusText); }
+    uploadBtn.disabled = false;
+    if(xhr.status >= 200 && xhr.status < 300){ setStatus('Upload complete.', false); bar.style.width = '100%'; setTimeout(()=>bar.style.width='0%',600); }
+    else { setStatus('Upload failed: ' + (xhr.statusText || xhr.status), true); }
   };
-  xhr.onerror = () => alert('Upload error');
+  xhr.onerror = () => { uploadBtn.disabled = false; setStatus('Upload error. Check server connection.', true); };
   xhr.send(form);
 });
 
@@ -86,4 +96,3 @@ document.getElementById('logout').addEventListener('click', async (e) => { e.pre
 </script>
 </body>
 </html>
-

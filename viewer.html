@@ -98,6 +98,7 @@
       <button id="clear">Clear nodes</button>
       <button id="pause">Pause events</button>
     </div>
+    <div id="ui_status" style="font-size:13px; color:var(--muted); min-height:18px;"></div>
 
     <h3 style="margin:8px 0 4px 0; color:var(--subtle); font-size:13px">Devices (your account)</h3>
     <div class="devices" id="devicesList">
@@ -307,6 +308,12 @@ window.addEventListener('resize', () => { initViz(); });
    SSE hookup & event handling
    --------------------------- */
 let eventCounter = 0;
+let eventsPaused = false;
+function setUiStatus(msg, isError){
+  const el = document.getElementById('ui_status');
+  el.textContent = msg || '';
+  el.style.color = isError ? 'var(--love)' : 'var(--muted)';
+}
 function pushLog(type, detail){
   eventCounter++;
   document.getElementById('event_count').textContent = eventCounter;
@@ -320,6 +327,7 @@ const es = new EventSource('/events');
 es.onopen = () => { setConnStatus(true); pushLog('sse','connected'); };
 // handle messages
 es.onmessage = (e) => {
+  if(eventsPaused) return;
   try {
     const obj = JSON.parse(e.data);
     const t = obj.type; const d = obj.detail || {}; const ip = d.ip || null;
@@ -361,7 +369,7 @@ es.onmessage = (e) => {
     pushLog('parse_error', e.data);
   }
 };
-es.onerror = () => { setConnStatus(false); pushLog('sse_error','connection lost'); };
+es.onerror = () => { setConnStatus(false); setUiStatus('SSE connection lost. Retrying…', true); pushLog('sse_error','connection lost'); };
 
 function setConnStatus(connected){
   const cs = document.getElementById('conn_status');
@@ -374,7 +382,11 @@ function setConnStatus(connected){
    --------------------------- */
 document.getElementById('center').onclick = () => { initViz(); };
 document.getElementById('clear').onclick = () => { location.reload(); };
-document.getElementById('pause').onclick = function(){ this._p = !this._p; this.textContent = this._p ? 'Resume events' : 'Pause events'; };
+document.getElementById('pause').onclick = function(){
+  eventsPaused = !eventsPaused;
+  this.textContent = eventsPaused ? 'Resume events' : 'Pause events';
+  setUiStatus(eventsPaused ? 'Event stream paused.' : 'Event stream resumed.', false);
+};
 
 /* ---------------------------
    Devices panel & registration
@@ -424,9 +436,9 @@ document.getElementById('registerDevice').addEventListener('click', async () => 
     fetchDevices();
     sendLog({ ts:new Date().toISOString(), type:'client_connected', detail:{ ip: CLIENT_ID, name: deviceName } });
     viz.upsertNode(CLIENT_ID, deviceName); viz.setNodeState(CLIENT_ID,'connected');
-    alert('Device registered.');
+    setUiStatus('Device registered.', false);
   } catch(e){
-    alert('Could not register device.');
+    setUiStatus('Could not register device.', true);
   }
 });
 
@@ -462,6 +474,7 @@ function centerOnNode(id){
   // 2) init viz already done; auto register device under account and fetch device list
   await autoRegisterDeviceIfNeeded(me.username || me.user_id);
   await fetchDevices();
+  setUiStatus(`Signed in as ${me.username || me.user_id}.`, false);
   // keep device list fresh
   setInterval(fetchDevices, 10000);
 
@@ -485,4 +498,3 @@ document.getElementById('logoutLink').addEventListener('click', async (ev) => {
 </script>
 </body>
 </html>
-

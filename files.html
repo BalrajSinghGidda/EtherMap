@@ -37,6 +37,7 @@ h1{color:var(--pine);text-align:left;margin:0 0 14px 0}
 <main class="container">
   <div class="card">
     <h1>Files</h1>
+    <div id="status" class="small" style="margin-bottom:10px;"></div>
     <div id="filesArea" class="table">
       <div style="padding:14px" class="small">Loading files…</div>
     </div>
@@ -49,6 +50,11 @@ h1{color:var(--pine);text-align:left;margin:0 0 14px 0}
 
 <script>
 async function fetchJson(url, opts){ const r = await fetch(url, Object.assign({credentials:'include'}, opts||{})); if(!r.ok) throw new Error('Server: '+r.status); return r.json(); }
+function setStatus(msg, isError){
+  const el = document.getElementById('status');
+  el.textContent = msg || '';
+  el.style.color = isError ? 'var(--rose)' : 'var(--muted)';
+}
 
 function mkRow(file){
   const div = document.createElement('div');
@@ -81,9 +87,9 @@ function mkRow(file){
     tbtn.textContent = 'Generating…';
     try{
       const res = await fetchJson('/files/temp', {method:'POST', body: JSON.stringify({name: file.name, ttl: 300}), headers: {'Content-Type':'application/json'}});
-      if(res.ok && res.url){ window.open(res.url, '_blank'); tbtn.textContent = 'Opened'; }
-      else { alert('Could not create temp link'); tbtn.textContent = 'Temp link'; }
-    }catch(err){ alert('Error: '+err.message); tbtn.textContent = 'Temp link'; }
+      if(res.ok && res.url){ window.open(res.url, '_blank'); tbtn.textContent = 'Opened'; setStatus('Temporary download link created.', false); }
+      else { setStatus('Could not create temporary link.', true); tbtn.textContent = 'Temp link'; }
+    }catch(err){ setStatus('Error creating temporary link: '+err.message, true); tbtn.textContent = 'Temp link'; }
     tbtn.disabled = false;
   });
 
@@ -100,12 +106,13 @@ async function loadFiles(){
   const area = document.getElementById('filesArea');
   area.innerHTML = '<div style="padding:14px" class="small">Loading files…</div>';
   try{
-    const j = await fetchJson('/files');
+    const j = await fetchJson('/api/files');
     if(!j.ok){ area.innerHTML = '<div style="padding:14px" class="small">Server error</div>'; return; }
-    if(!j.files || !j.files.length){ area.innerHTML = '<div style="padding:14px" class="small">No files</div>'; return; }
+    if(!j.files || !j.files.length){ area.innerHTML = '<div style="padding:14px" class="small">No files</div>'; setStatus('No uploaded files yet.', false); return; }
     area.innerHTML = '';
     j.files.forEach(f => area.appendChild(mkRow(f)));
-  }catch(e){ area.innerHTML = '<div style="padding:14px" class="small">Error: '+(e.message||e)+'</div>'; }
+    setStatus(`Loaded ${j.files.length} file(s).`, false);
+  }catch(e){ area.innerHTML = '<div style="padding:14px" class="small">Error: '+(e.message||e)+'</div>'; setStatus('Could not load files list.', true); }
 }
 
 document.getElementById('refresh').addEventListener('click', loadFiles);

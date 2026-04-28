@@ -1,131 +1,69 @@
 #!/usr/bin/env python3
-import asyncio, json, time, os
+"""Start EtherMap web servers for local demo use."""
 
-EVENT_LOG = "events.log"
-STATE_FILE = "state.json"
-PORT = 2121
-STATE = {}  # ip -> status
-
-
-def ts():
-    return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
+import os
+import signal
+import subprocess
+import sys
+import time
 
 
-def emit_event(event_type, detail):
-    evt = {"ts": ts(), "type": event_type, "detail": detail}
-    with open(EVENT_LOG, "a") as f:
-        f.write(json.dumps(evt) + "\n")
-    update_state(detail.get("ip", ""), event_type)
+ROOT = os.path.dirname(os.path.abspath(__file__))
+EVENTS_SERVER = os.path.join(ROOT, "events-server.py")
+SIGNALING_SERVER = os.path.join(ROOT, "auth_signaling.py")
 
 
-def update_state(ip, status):
-    if not ip:
-        return
-    STATE[ip] = status
-    with open(STATE_FILE, "w") as f:
-        json.dump({"nodes": [{"ip": k, "state": v} for k, v in STATE.items()]}, f)
+def spawn(name, script_path):
+    proc = subprocess.Popen([sys.executable, script_path], cwd=ROOT)
+    print(f"[start] {name} pid={proc.pid}")
+    return proc
 
 
-async def handle_client(reader, writer):
-    addr = writer.get_extra_info("peername")[0]
-    emit_event("client_connected", {"ip": addr})
-    print(f"[+] {addr} connected")
+def terminate_all(procs):
+    for p in procs:
+        if p.poll() is None:
+            p.terminate()
+    deadline = time.time() + 4
+    for p in procs:
+        if p.poll() is not None:
+            continue
+        remaining = max(0, deadline - time.time())
+        try:
+            p.wait(timeout=remaining)
+        except subprocess.TimeoutExpired:
+            p.kill()
+
+
+def main():
+    print("Starting EtherMap demo stack")
+    print("  events server:   http://127.0.0.1:5000")
+    print("  signaling server: http://127.0.0.1:5050")
+    print("Press Ctrl+C to stop.")
+
+    procs = [
+        spawn("events-server", EVENTS_SERVER),
+        spawn("auth_signaling", SIGNALING_SERVER),
+    ]
+
+    def handle_stop(_sig, _frame):
+        terminate_all(procs)
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGINT, handle_stop)
+    signal.signal(signal.SIGTERM, handle_stop)
 
     try:
         while True:
-            data = await reader.readline()
-            if not data:
-                break
-            cmd = data.decode().strip()
-            print(f"{addr} -> {cmd}")
-            if cmd == "QUIT":
-                writer.write(b"221 Goodbye\r\n")
-                await writer.drain()
-                break
-
-            elif cmd.startswith("HELLO"):
-                writer.write(f"200 WELCOME {addr}\r\n".encode())
-                await writer.drain()
-
-            elif cmd == "LIST":
-                reply = "150 Here comes the directory listing\r\nfile1.txt\r\nfile2.txt\r\n226 Done\r\n"
-                writer.write(reply.encode())
-                await writer.drain()
-
-            elif cmd.startswith("PUT"):
-                try:
-                    _, filename, size = cmd.split()
-                    size = int(size)
-                except:
-                    writer.write(b"500 PUT usage: PUT <filename> <size>\r\n")
-                    await writer.drain()
-                    continue
-
-                emit_event("put_start", {"ip": addr, "file": filename, "size": size})
-                writer.write(b"150 Ready to receive\r\n")
-                await writer.drain()
-                with open(filename, "wb") as f:
-                    remaining = size
-                    while remaining > 0:
-                        chunk = await reader.read(min(4096, remaining))
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                        remaining -= len(chunk)
-                if remaining == 0:
-                    emit_event("put_done", {"ip": addr, "file": filename, "size": size})
-                    writer.write(b"226 Transfer complete\r\n")
-                else:
-                    emit_event(
-                        "error",
-                        {"ip": addr, "file": filename, "what": "PUT incomplete"},
-                    )
-                    writer.write(b"426 Transfer incomplete\r\n")
-                await writer.drain()
-
-            elif cmd.startswith("GET"):
-                try:
-                    _, filename = cmd.split()
-                    size = os.path.getsize(filename)
-                except:
-                    writer.write(b"550 File not found\r\n")
-                    await writer.drain()
-                    continue
-
-                emit_event("get_start", {"ip": addr, "file": filename, "size": size})
-                writer.write(f"SIZE {size}\r\n".encode())
-                await writer.drain()
-                with open(filename, "rb") as f:
-                    while chunk := f.read(4096):
-                        writer.write(chunk)
-                        await writer.drain()
-                emit_event("get_done", {"ip": addr, "file": filename, "size": size})
-                writer.write(b"226 Done\r\n")
-                await writer.drain()
-
-            else:
-                emit_event("error", {"ip": addr, "what": "unknown", "cmd": cmd})
-                writer.write(b"500 Unknown command\r\n")
-                await writer.drain()
-
-    except Exception as e:
-        emit_event("error", {"ip": addr, "what": str(e)})
-
-    emit_event("client_disconnected", {"ip": addr})
-    writer.close()
-    await writer.wait_closed()
-    print(f"[-] {addr} disconnected")
-
-
-async def main():
-    server = await asyncio.start_server(handle_client, "0.0.0.0", PORT)
-    print(f"[FTP] Listening on {PORT}")
-    async with server:
-        await server.serve_forever()
+            for p in procs:
+                code = p.poll()
+                if code is not None:
+                    print(f"[stop] child pid={p.pid} exited with {code}")
+                    terminate_all(procs)
+                    return code if code else 0
+            time.sleep(0.5)
+    finally:
+        terminate_all(procs)
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\nServer stopped.")
+    raise SystemExit(main())

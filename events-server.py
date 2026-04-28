@@ -19,12 +19,9 @@ from flask import (
     g,
     abort,
     redirect,
-    url_for,
 )
 import os, time, json, threading, secrets, sqlite3
 from datetime import datetime, timezone
-from html import escape
-from urllib.parse import quote
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # ---------- Config ----------
@@ -38,7 +35,7 @@ TEMP_TOKENS = {}  # token -> (name, expires_ts)
 # Server settings
 HOST = "0.0.0.0"
 PORT = 5000
-SESSION_SECRET = os.environ.get("FLASK_SECRET") or secrets.token_urlsafe(24)
+SESSION_SECRET = os.environ.get("FLASK_SECRET") or "dev-secret-change-me"
 
 app = Flask(__name__, static_folder=".")
 app.secret_key = SESSION_SECRET
@@ -81,6 +78,56 @@ def fmt_mtime(ts):
         return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
     except Exception:
         return "-"
+
+
+def write_state_from_events():
+    """Rebuild a lightweight node state map from recent events."""
+    latest = {}
+    if not os.path.exists(EVENTS_FILE):
+        with open(STATE_FILE, "w") as f:
+            json.dump({"nodes": []}, f)
+        return
+    try:
+        with open(EVENTS_FILE, "r") as f:
+            for line in f:
+                try:
+                    evt = json.loads(line)
+                except Exception:
+                    continue
+                detail = evt.get("detail") or {}
+                ip = detail.get("ip") or detail.get("client_id")
+                if not ip:
+                    continue
+                evt_type = evt.get("type") or "unknown"
+                if evt_type in ("put_start", "get_start"):
+                    state = "transferring"
+                elif evt_type in ("client_disconnected",):
+                    state = "idle"
+                elif evt_type in ("error",):
+                    state = "error"
+                else:
+                    state = "connected"
+                latest[str(ip)] = state
+    except Exception:
+        pass
+    with open(STATE_FILE, "w") as f:
+        json.dump({"nodes": [{"ip": k, "state": v} for k, v in latest.items()]}, f)
+
+
+def append_event(event_obj):
+    """Normalize and append one event to the event log + derived state file."""
+    evt_type = str(event_obj.get("type") or "raw")
+    detail = event_obj.get("detail")
+    if not isinstance(detail, dict):
+        detail = {"raw": str(detail)[:4000] if detail is not None else ""}
+    evt = {
+        "ts": event_obj.get("ts") or time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()),
+        "type": evt_type,
+        "detail": detail,
+    }
+    with open(EVENTS_FILE, "a") as f:
+        f.write(json.dumps(evt) + "\n")
+    write_state_from_events()
 
 
 def make_token(filename, ttl):
@@ -216,6 +263,12 @@ def root():
     return send_from_directory(".", "viewer.html")
 
 
+@app.route("/viewer.html")
+@login_required
+def viewer_page():
+    return send_from_directory(".", "viewer.html")
+
+
 # ---------- Auth endpoints ----------
 @app.route("/register", methods=["POST"])
 def api_register():
@@ -257,9 +310,10 @@ def api_login():
 
 
 @app.route("/logout", methods=["POST", "GET"])
-@login_required
 def api_logout():
     session.clear()
+    if request.method == "GET":
+        return redirect("/login")
     return jsonify({"ok": True})
 
 
@@ -343,8 +397,7 @@ def log_event():
             "detail": {"raw": request.get_data(as_text=True)[:4000]},
         }
     try:
-        with open(EVENTS_FILE, "a") as f:
-            f.write(json.dumps(data) + "\n")
+        append_event(data)
     except Exception as e:
         print("log_event write error:", e)
     return jsonify({"ok": True})
@@ -382,8 +435,7 @@ def upload():
                 "size": os.path.getsize(path),
             },
         }
-        with open(EVENTS_FILE, "a") as f:
-            f.write(json.dumps(evt) + "\n")
+        append_event(evt)
         return jsonify({"ok": True, "file": safe_name})
 
     # serve upload page if exists, else small fallback
@@ -391,123 +443,53 @@ def upload():
         return send_from_directory(".", "upload.html")
     return '<html><body><h1>Upload</h1><form method="post" enctype="multipart/form-data"><input type=file name=file><input type=submit></form></body></html>'
 
-@app.route("/files")
-@login_required
-def list_files():
-    try:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-    except Exception:
-        return (
-            "<!doctype html><html><body><h1>Files error</h1><p>Could not ensure uploads directory.</p></body></html>",
-            500,
-        )
-
-    def safe_listdir(path):
-        try:
-            return sorted(os.listdir(path))
-        except Exception:
-            return []
-
-    entries = safe_listdir(UPLOAD_DIR)
-    rows = []
-    for name in sorted(entries, reverse=True):
-        if name.startswith("."):
-            continue
+def collect_upload_files():
+    entries = sorted(
+        [p for p in os.listdir(UPLOAD_DIR) if not p.startswith(".")], reverse=True
+    )
+    files = []
+    for name in entries:
         full = os.path.join(UPLOAD_DIR, name)
         try:
             st = os.stat(full)
-            size = human_size(st.st_size)
-            mtime = fmt_mtime(st.st_mtime)
+            files.append(
+                {
+                    "name": name,
+                    "size": st.st_size,
+                    "size_h": human_size(st.st_size),
+                    "mtime": int(st.st_mtime),
+                    "mtime_s": fmt_mtime(st.st_mtime),
+                }
+            )
         except Exception:
-            size = "?"
-            mtime = "?"
-        safe_label = escape(name)
-        safe_href = quote(name, safe="")
-        rows.append(
-            "<tr>"
-            f"<td style='padding:8px 12px;'><a href='/files/{safe_href}' style='color:var(--pine);text-decoration:none'>{safe_label}</a></td>"
-            f"<td style='padding:8px 12px; text-align:right'>{size}</td>"
-            f"<td style='padding:8px 12px; text-align:right'>{mtime}</td>"
-            "</tr>"
-        )
+            files.append(
+                {
+                    "name": name,
+                    "size": None,
+                    "size_h": "?",
+                    "mtime": None,
+                    "mtime_s": "?",
+                }
+            )
+    return files
 
-    table_body = (
-        "\n".join(rows)
-        if rows
-        else "<tr><td colspan='3'><em>No uploaded files.</em></td></tr>"
-    )
 
-    html = (
-        "<!doctype html>\n"
-        "<html>\n"
-        "<head>\n"
-        "<meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>\n"
-        "<title>Files — Network Node</title>\n"
-        "<style>\n"
-        ":root{ --base:#faf4ed; --text:#2b2430; --pine:#316a78; --rose:#e6b8c4; --muted:#6b646f; }\n"
-        "html,body{ height:100vh; margin:0; overflow:hidden; scrollbar-gutter:stable; }\n"
-        "body{ background:var(--base); color:var(--text); font-family:Inter,system-ui,sans-serif; padding-top:72px; }\n"
-        ".topnav{ position:fixed; top:0; left:0; right:0; box-sizing:border-box; padding:12px 48px 12px 20px; display:flex; align-items:center; justify-content:space-between; background:#f3ebe7; z-index:9999; border-bottom:1px solid rgba(43,36,48,0.06); }\n"
-        ".nav-links{ display:flex; gap:14px; margin-left:auto; }\n"
-        ".topnav a{ text-decoration:none; color:var(--pine); font-weight:600; padding:6px 4px; }\n"
-        "#wrap{ height:calc(100vh-72px); display:flex; align-items:flex-start; justify-content:center; padding:18px; box-sizing:border-box; overflow:auto; }\n"
-        ".table-card{ max-width:1000px; width:90%; background:#fffaf6; border-radius:12px; box-shadow: 0 8px 24px rgba(18,16,20,0.04); overflow:auto; }\n"
-        "table{ width:100%; border-collapse:collapse; }\n"
-        "th{ text-align:left; padding:12px; border-bottom:1px solid rgba(43,36,48,0.04); background: rgba(0,0,0,0.02); position: sticky; top:0; z-index:2; }\n"
-        "td{ border-bottom:1px solid rgba(43,36,48,0.03); }\n"
-        ".row-meta{ color:var(--muted); font-size:13px; }\n"
-        ".small{ font-size:12px; color:var(--muted); }\n"
-        "</style>\n"
-        "</head>\n"
-        "<body>\n"
-        "<nav class='topnav'><div style='color:var(--pine); font-weight:700;'>Network Topology Demo</div><div class='nav-links'><a href='/'>Visualization</a><a href='/upload'>Upload</a></div></nav>\n"
-        "<div id='wrap'><div class='table-card'><table><thead><tr><th>File</th><th style='text-align:right'>Size</th><th style='text-align:right'>Modified</th></tr></thead><tbody>\n"
-        + table_body
-        + "\n</tbody></table></div></div>\n"
-        "</body>\n"
-        "</html>"
-    )
-    return html
-# @app.route("/files")
-# @login_required
-# def list_files():
-#     """Return a JSON list of files in the uploads directory.
-#     Used by the JS-driven files.html page.
-#     """
-#     try:
-#         os.makedirs(UPLOAD_DIR, exist_ok=True)
-#     except Exception:
-#         return jsonify({"ok": False, "error": "uploads dir error"}), 500
-# 
-#     entries = sorted(
-#         [p for p in os.listdir(UPLOAD_DIR) if not p.startswith(".")], reverse=True
-#     )
-#     files = []
-#     for name in entries:
-#         full = os.path.join(UPLOAD_DIR, name)
-#         try:
-#             st = os.stat(full)
-#             files.append(
-#                 {
-#                     "name": name,
-#                     "size": st.st_size,
-#                     "size_h": human_size(st.st_size),
-#                     "mtime": int(st.st_mtime),
-#                     "mtime_s": fmt_mtime(st.st_mtime),
-#                 }
-#             )
-#         except Exception:
-#             files.append(
-#                 {
-#                     "name": name,
-#                     "size": None,
-#                     "size_h": "?",
-#                     "mtime": None,
-#                     "mtime_s": "?",
-#                 }
-#             )
-# 
-#     return jsonify({"ok": True, "files": files})
+@app.route("/files")
+@login_required
+def files_page():
+    if os.path.exists(os.path.join(".", "files.html")):
+        return send_from_directory(".", "files.html")
+    return jsonify({"ok": True, "files": collect_upload_files()})
+
+
+@app.route("/api/files")
+@login_required
+def list_files_api():
+    try:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+    except Exception:
+        return jsonify({"ok": False, "error": "uploads dir error"}), 500
+    return jsonify({"ok": True, "files": collect_upload_files()})
 
 
 @app.route("/files/<path:name>")
@@ -540,7 +522,6 @@ def create_temp_link():
 
 
 @app.route("/files/temp/<token>")
-@login_required
 def serve_temp(token):
     name = validate_token(token)
     if not name:
