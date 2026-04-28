@@ -87,6 +87,14 @@ nix develop
 python server.py
 ```
 
+### Quick demo reset (between exhibition runs)
+
+```bash
+./reset_demo.sh --yes
+```
+
+This clears `events.log`, resets `state.json`, and removes uploaded files from `uploads/`.
+
 ### 4. Open in browser
 
 * `http://127.0.0.1:5000/` → Network visualization

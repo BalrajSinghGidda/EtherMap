@@ -7,3 +7,21 @@
 {"ts": "2026-04-28T20:47:04.821Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
 {"ts": "2026-04-28T20:47:24.820Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
 {"ts": "2026-04-28T20:48:05.820Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:27:45.130Z", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:28:03.683Z", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:28:09.784Z", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:28:29.841Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:28:49.840Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:29:09.839Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:29:29.840Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:29:49.840Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:30:09.839Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:30:12.112Z", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:30:32.142Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:30:52.142Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:31:12.142Z", "type": "viewer_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:31:14.342Z", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64"}}
+{"ts": "2026-04-28T22:43:29", "type": "auth_success", "detail": {"username": "balraj", "ip": "127.0.0.1"}}
+{"ts": "2026-04-28T22:43:30", "type": "client_connected", "detail": {"ip": "OndpkbfHh6GtK4URAAAB", "user": 1}}
+{"ts": "2026-04-28T22:43:30", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-28T22:43:30", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "src": "727py2-j39iyz", "dst": "SERVER", "name": "Linux x86_64", "device_type": "client", "icon": "\ud83d\udcbb"}}

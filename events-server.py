@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # events-server.py
-# Full-featured Flask server for Network Topology visualization project
+# Full-featured Flask server for EtherMap visualization project
 # - Cookie-based auth (SQLite)
 # - Devices registration & listing
 # - File uploads/downloads + temp links
@@ -95,7 +95,7 @@ def write_state_from_events():
                 except Exception:
                     continue
                 detail = evt.get("detail") or {}
-                ip = detail.get("ip") or detail.get("client_id")
+                ip = detail.get("ip") or detail.get("client_id") or detail.get("src")
                 if not ip:
                     continue
                 evt_type = evt.get("type") or "unknown"
@@ -114,6 +114,22 @@ def write_state_from_events():
         json.dump({"nodes": [{"ip": k, "state": v} for k, v in latest.items()]}, f)
 
 
+def read_recent_events(limit=500):
+    if not os.path.exists(EVENTS_FILE):
+        return []
+    events = []
+    with open(EVENTS_FILE, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                events.append(json.loads(line))
+            except Exception:
+                continue
+    return events[-limit:] if limit > 0 else events
+
+
 def append_event(event_obj):
     """Normalize and append one event to the event log + derived state file."""
     evt_type = str(event_obj.get("type") or "raw")
@@ -128,6 +144,15 @@ def append_event(event_obj):
     with open(EVENTS_FILE, "a") as f:
         f.write(json.dumps(evt) + "\n")
     write_state_from_events()
+
+
+def parse_ts(ts_text):
+    if not ts_text:
+        return None
+    try:
+        return datetime.fromisoformat(str(ts_text).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
 
 
 def make_token(filename, ttl):
@@ -199,11 +224,18 @@ def init_db():
       user_id INTEGER NOT NULL,
       client_id TEXT NOT NULL,
       name TEXT,
+      device_type TEXT,
+      icon TEXT,
       ua TEXT,
       last_seen INTEGER,
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
     """)
+    cols = [r["name"] for r in db.execute("PRAGMA table_info(devices)").fetchall()]
+    if "device_type" not in cols:
+        db.execute("ALTER TABLE devices ADD COLUMN device_type TEXT")
+    if "icon" not in cols:
+        db.execute("ALTER TABLE devices ADD COLUMN icon TEXT")
     db.commit()
 
 
@@ -302,10 +334,22 @@ def api_login():
         "SELECT id, pw_hash FROM users WHERE username=?", (username,)
     ).fetchone()
     if not row or not check_password_hash(row["pw_hash"], pw):
+        append_event(
+            {
+                "type": "auth_failed",
+                "detail": {"username": username, "ip": request.remote_addr or "unknown"},
+            }
+        )
         return jsonify({"ok": False, "error": "bad"}), 401
     session.clear()
     session["user_id"] = row["id"]
     session.permanent = True
+    append_event(
+        {
+            "type": "auth_success",
+            "detail": {"username": username, "ip": request.remote_addr or "unknown"},
+        }
+    )
     return jsonify({"ok": True, "user_id": row["id"], "username": username})
 
 
@@ -337,6 +381,8 @@ def devices_register():
     data = request.get_json(force=True)
     client_id = (data.get("client_id") or "").strip()
     name = (data.get("name") or "").strip()
+    device_type = (data.get("device_type") or "client").strip()[:32]
+    icon = (data.get("icon") or "💻").strip()[:8]
     ua = request.headers.get("User-Agent", "")[:255]
     if not client_id:
         return jsonify({"ok": False, "error": "missing client_id"}), 400
@@ -350,15 +396,26 @@ def devices_register():
     ts = int(time.time())
     if r:
         cur.execute(
-            "UPDATE devices SET name=?, ua=?, last_seen=? WHERE id=?",
-            (name, ua, ts, r["id"]),
+            "UPDATE devices SET name=?, device_type=?, icon=?, ua=?, last_seen=? WHERE id=?",
+            (name, device_type, icon, ua, ts, r["id"]),
         )
     else:
         cur.execute(
-            "INSERT INTO devices (user_id, client_id, name, ua, last_seen) VALUES (?, ?, ?, ?, ?)",
-            (uid, client_id, name, ua, ts),
+            "INSERT INTO devices (user_id, client_id, name, device_type, icon, ua, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (uid, client_id, name, device_type, icon, ua, ts),
         )
     db.commit()
+    append_event(
+        {
+            "type": "client_connected",
+            "detail": {
+                "ip": client_id,
+                "name": name or client_id,
+                "device_type": device_type,
+                "icon": icon,
+            },
+        }
+    )
     return jsonify({"ok": True})
 
 
@@ -368,7 +425,7 @@ def devices_list():
     uid = session["user_id"]
     db = get_db()
     rows = db.execute(
-        "SELECT client_id, name, last_seen FROM devices WHERE user_id=? ORDER BY last_seen DESC",
+        "SELECT client_id, name, device_type, icon, last_seen FROM devices WHERE user_id=? ORDER BY last_seen DESC",
         (uid,),
     ).fetchall()
     devices = []
@@ -377,10 +434,32 @@ def devices_list():
             {
                 "client_id": r["client_id"],
                 "name": r["name"] or r["client_id"],
+                "device_type": r["device_type"] or "client",
+                "icon": r["icon"] or "💻",
                 "last_seen": r["last_seen"],
             }
         )
     return jsonify({"ok": True, "devices": devices})
+
+
+@app.route("/devices/profile", methods=["POST"])
+@login_required
+def devices_profile():
+    data = request.get_json(force=True)
+    client_id = (data.get("client_id") or "").strip()
+    if not client_id:
+        return jsonify({"ok": False, "error": "missing client_id"}), 400
+    name = (data.get("name") or "").strip()
+    device_type = (data.get("device_type") or "client").strip()[:32]
+    icon = (data.get("icon") or "💻").strip()[:8]
+    uid = session["user_id"]
+    db = get_db()
+    db.execute(
+        "UPDATE devices SET name=?, device_type=?, icon=?, last_seen=? WHERE user_id=? AND client_id=?",
+        (name, device_type, icon, int(time.time()), uid, client_id),
+    )
+    db.commit()
+    return jsonify({"ok": True})
 
 
 # ---------- Event logging (open) ----------
@@ -431,6 +510,9 @@ def upload():
             "type": "put_done",
             "detail": {
                 "ip": client_id,
+                "src": client_id,
+                "dst": "SERVER",
+                "direction": "upload",
                 "file": safe_name,
                 "size": os.path.getsize(path),
             },
@@ -474,6 +556,179 @@ def collect_upload_files():
     return files
 
 
+@app.route("/api/files/rename", methods=["POST"])
+@login_required
+def rename_file_api():
+    data = request.get_json(force=True)
+    old = os.path.basename((data.get("old_name") or "").strip())
+    new = os.path.basename((data.get("new_name") or "").strip())
+    if not old or not new:
+        return jsonify({"ok": False, "error": "missing file name"}), 400
+    old_path = os.path.join(UPLOAD_DIR, old)
+    new_path = os.path.join(UPLOAD_DIR, new)
+    if not os.path.isfile(old_path):
+        return jsonify({"ok": False, "error": "source missing"}), 404
+    if os.path.exists(new_path):
+        return jsonify({"ok": False, "error": "target exists"}), 409
+    os.rename(old_path, new_path)
+    append_event(
+        {
+            "type": "file_renamed",
+            "detail": {
+                "ip": str(session.get("user_id")),
+                "src": str(session.get("user_id")),
+                "dst": "SERVER",
+                "old_name": old,
+                "new_name": new,
+            },
+        }
+    )
+    return jsonify({"ok": True})
+
+
+@app.route("/api/files/delete", methods=["POST"])
+@login_required
+def delete_file_api():
+    data = request.get_json(force=True)
+    name = os.path.basename((data.get("name") or "").strip())
+    if not name:
+        return jsonify({"ok": False, "error": "missing file name"}), 400
+    path = os.path.join(UPLOAD_DIR, name)
+    if not os.path.isfile(path):
+        return jsonify({"ok": False, "error": "not found"}), 404
+    os.remove(path)
+    append_event(
+        {
+            "type": "file_deleted",
+            "detail": {
+                "ip": str(session.get("user_id")),
+                "src": str(session.get("user_id")),
+                "dst": "SERVER",
+                "file": name,
+            },
+        }
+    )
+    return jsonify({"ok": True})
+
+
+@app.route("/api/analytics")
+@login_required
+def analytics_api():
+    events = read_recent_events(1500)
+    transfer_events = {"put_start", "put_done", "get_start", "get_done"}
+    by_device = {}
+    auth_fail_by_ip = {}
+    burst_window = []
+    now = time.time()
+    for evt in events:
+        detail = evt.get("detail") or {}
+        src = str(detail.get("src") or detail.get("ip") or detail.get("client_id") or "")
+        evt_type = evt.get("type") or "unknown"
+        size = int(detail.get("size") or 0)
+        ts = parse_ts(evt.get("ts")) or now
+        if src:
+            if src not in by_device:
+                by_device[src] = {"events": 0, "bytes": 0, "transfers": 0}
+            by_device[src]["events"] += 1
+            if evt_type in transfer_events:
+                by_device[src]["transfers"] += 1
+                by_device[src]["bytes"] += size
+        if evt_type == "auth_failed":
+            ip = str(detail.get("ip") or "unknown")
+            auth_fail_by_ip[ip] = auth_fail_by_ip.get(ip, 0) + 1
+        burst_window.append(ts)
+    burst_window = [t for t in burst_window if now - t <= 20]
+    top = sorted(
+        [{"id": k, **v} for k, v in by_device.items()],
+        key=lambda x: (x["bytes"], x["events"]),
+        reverse=True,
+    )[:8]
+    return jsonify(
+        {
+            "ok": True,
+            "totals": {
+                "events": len(events),
+                "devices": len(by_device),
+                "bytes": sum(v["bytes"] for v in by_device.values()),
+                "burst_20s": len(burst_window),
+            },
+            "top_devices": top,
+            "auth_fail_by_ip": auth_fail_by_ip,
+        }
+    )
+
+
+@app.route("/api/state/export")
+@login_required
+def export_state_api():
+    events = read_recent_events(5000)
+    state_payload = {"nodes": []}
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            try:
+                state_payload = json.load(f)
+            except Exception:
+                state_payload = {"nodes": []}
+    uid = session["user_id"]
+    db = get_db()
+    devices = [
+        dict(r)
+        for r in db.execute(
+            "SELECT client_id, name, device_type, icon, last_seen FROM devices WHERE user_id=? ORDER BY last_seen DESC",
+            (uid,),
+        ).fetchall()
+    ]
+    payload = {
+        "version": 1,
+        "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()),
+        "state": state_payload,
+        "events": events,
+        "devices": devices,
+    }
+    return jsonify({"ok": True, "payload": payload})
+
+
+@app.route("/api/state/import", methods=["POST"])
+@login_required
+def import_state_api():
+    data = request.get_json(force=True)
+    payload = data.get("payload") if isinstance(data, dict) else None
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "error": "invalid payload"}), 400
+    events = payload.get("events")
+    if not isinstance(events, list):
+        return jsonify({"ok": False, "error": "missing events"}), 400
+    with open(EVENTS_FILE, "w") as f:
+        for evt in events[-5000:]:
+            if isinstance(evt, dict):
+                f.write(json.dumps(evt) + "\n")
+    write_state_from_events()
+    devices = payload.get("devices") or []
+    uid = session["user_id"]
+    db = get_db()
+    for d in devices:
+        if not isinstance(d, dict):
+            continue
+        client_id = (d.get("client_id") or "").strip()
+        if not client_id:
+            continue
+        db.execute(
+            "INSERT OR REPLACE INTO devices (id, user_id, client_id, name, device_type, icon, ua, last_seen) VALUES ((SELECT id FROM devices WHERE user_id=? AND client_id=?), ?, ?, ?, ?, ?, '', ?)",
+            (
+                uid,
+                client_id,
+                uid,
+                client_id,
+                (d.get("name") or client_id)[:255],
+                (d.get("device_type") or "client")[:32],
+                (d.get("icon") or "💻")[:8],
+                int(d.get("last_seen") or time.time()),
+            ),
+        )
+    db.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/files")
 @login_required
 def files_page():
@@ -501,6 +756,21 @@ def serve_file(name):
     path = os.path.join(UPLOAD_DIR, name)
     if not os.path.isfile(path):
         abort(404)
+    size = os.path.getsize(path)
+    src = str(session.get("user_id") or request.remote_addr or "unknown")
+    append_event(
+        {
+            "type": "get_done",
+            "detail": {
+                "ip": src,
+                "src": "SERVER",
+                "dst": src,
+                "direction": "download",
+                "file": name,
+                "size": size,
+            },
+        }
+    )
     return send_from_directory(UPLOAD_DIR, name, as_attachment=True)
 
 
@@ -527,6 +797,22 @@ def serve_temp(token):
     if not name:
         abort(404)
     try:
+        full = os.path.join(UPLOAD_DIR, name)
+        if os.path.isfile(full):
+            size = os.path.getsize(full)
+            append_event(
+                {
+                    "type": "get_done",
+                    "detail": {
+                        "ip": str(request.remote_addr or "anon"),
+                        "src": "SERVER",
+                        "dst": str(request.remote_addr or "anon"),
+                        "direction": "download",
+                        "file": name,
+                        "size": size,
+                    },
+                }
+            )
         return send_from_directory(UPLOAD_DIR, name, as_attachment=True)
     except Exception as e:
         print("serve_temp error:", e)

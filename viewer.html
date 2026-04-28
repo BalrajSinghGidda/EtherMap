@@ -2,72 +2,50 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Network Topology — Live Viewer</title>
+<title>EtherMap — Live Viewer</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  /* Rose-pine Dawn (light) - palette */
   :root {
-    --base: #faf4ed; --surface:#fffaf6; --overlay:#f3ebe7;
-    --muted:#6b646f; --subtle:#7f7482; --text:#2b2430;
-    --love:#b4637a; --gold:#c08a4b; --rose:#e6b8c4;
-    --pine:#316a78; --foam:#5fb6b1; --iris:#8a6fd1; --glass: rgba(43,36,48,0.04);
+    --base:#191724; --surface:#1f1d2e; --overlay:#26233a; --glass:rgba(224,222,244,0.08);
+    --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
+    --love:#eb6f92; --gold:#f6c177; --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8;
   }
-
-  /* disable page-level scroll; panels scroll internally */
-  html, body { height:100vh; margin:0; overflow:hidden; scrollbar-gutter: stable; }
-  body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); -webkit-font-smoothing:antialiased; }
-
-  /* NAVBAR (fixed, safe padding on right) */
-  .topnav {
-    position: fixed; top:0; left:0; right:0;
-    box-sizing: border-box;
-    padding: 12px 48px 12px 20px;
-    display:flex; align-items:center; gap:12px; justify-content:space-between;
-    background:var(--overlay); z-index:9999;
-    border-bottom:1px solid rgba(43,36,48,0.06);
-    white-space:nowrap;
-  }
-  .nav-links{ display:flex; gap:14px; margin-left:auto; padding-right:12px; }
-  .topnav a{ text-decoration:none; color:var(--pine); font-weight:600; padding:6px 4px; }
-  .topnav a.active{ color:var(--rose); }
-
-  .app { display:grid; grid-template-columns: 1fr 360px; gap:12px; height: calc(100vh - 72px); padding: 86px 14px 14px 14px; box-sizing:border-box; }
-  .canvas { background:var(--surface); border-radius:12px; padding:12px; overflow:hidden; box-shadow:0 6px 20px rgba(18,16,20,0.04); display:flex; flex-direction:column; }
-  header h1 { margin:0; font-size:18px; color:var(--pine); }
-  header .sub { color:var(--subtle); font-size:12px; }
-  #viz { flex:1 1 auto; width:100%; height:100%; display:block; }
-
-  .panel { background:var(--surface); border-radius:12px; padding:12px; box-shadow:0 6px 20px rgba(18,16,20,0.04); display:flex; flex-direction:column; gap:8px; max-height: calc(100vh - 120px); overflow:hidden; }
-  #log { overflow:auto; max-height: 220px; padding-right:6px; font-family: monospace; font-size:13px; color:var(--text); }
-
-  .stat { display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:8px; background:var(--overlay); font-size:13px; color:var(--text); }
-  .legend .item { color:var(--subtle); font-size:13px; margin-top:6px; }
-  .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:8px; vertical-align:middle; }
+  html, body { height:100vh; margin:0; overflow:hidden; }
+  body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); }
+  .topnav { position:fixed; top:0; left:0; right:0; padding:12px 48px 12px 20px; display:flex; align-items:center; background:var(--overlay); border-bottom:1px solid var(--glass); z-index:10; }
+  .topnav a { text-decoration:none; color:var(--pine); font-weight:700; margin-left:14px; }
+  .topnav a.active { color:var(--rose); }
+  .app { display:grid; grid-template-columns: 1fr 420px; gap:12px; height:calc(100vh - 72px); padding:86px 12px 12px; box-sizing:border-box; }
+  .card { background:var(--surface); border:1px solid var(--glass); border-radius:12px; box-shadow:0 8px 24px rgba(11,9,12,0.35); }
+  .canvas { display:flex; flex-direction:column; padding:12px; }
+  .panel { padding:12px; overflow:auto; display:flex; flex-direction:column; gap:10px; }
+  #viz { width:100%; height:100%; min-height:360px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .stat { display:flex; justify-content:space-between; padding:8px; border-radius:8px; background:var(--overlay); border:1px solid var(--glass); font-size:13px; }
+  .muted { color:var(--muted); font-size:12px; }
+  button, input, select { background:var(--overlay); color:var(--text); border:1px solid var(--glass); border-radius:8px; padding:6px 8px; }
+  button { background:var(--pine); cursor:pointer; font-weight:700; }
+  button:hover { background:var(--foam); color:var(--base); }
+  #log, #alerts, #chatLog, #devicesList { max-height:180px; overflow:auto; border:1px solid var(--glass); border-radius:8px; background:var(--overlay); padding:8px; }
+  .device-row { display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--glass); }
+  .device-row:last-child { border-bottom:none; }
+  .chip { display:inline-block; padding:2px 6px; border-radius:999px; background:var(--overlay); border:1px solid var(--glass); font-size:11px; color:var(--muted); }
+  .link-passive { stroke: var(--muted); stroke-width:1.5; opacity:.5; }
+  .link-active { stroke: var(--rose); stroke-width:3; opacity:.95; }
   .state-connected { fill: var(--foam); }
   .state-transferring { fill: var(--gold); }
   .state-idle { fill: var(--muted); }
   .state-error { fill: var(--love); }
-  .link-active { stroke: var(--rose); stroke-width:3; opacity:0.95; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.06)); }
-  .link-fade { stroke: var(--overlay); stroke-width:1; opacity:0.6; }
-  footer { color:var(--subtle); font-size:12px; }
-  button { background:var(--pine); color:var(--base); border:none; padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:700; }
-  button:hover { background:var(--foam); }
-
-  /* devices list */
-  .devices { overflow:auto; max-height:240px; padding-right:6px; }
-  .device-row { display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:8px; margin-bottom:6px; background:rgba(0,0,0,0.01); }
-  .device-meta { display:flex; gap:8px; align-items:center; }
-  .device-name { font-weight:700; color:var(--pine); }
-  .device-id { font-size:12px; color:var(--subtle); }
-
-  @media (max-width:1000px){ .app{ grid-template-columns: 1fr; padding:100px 12px 12px 12px; } .panel{ max-height: calc(50vh); overflow:auto; } }
+  .node-label { fill: var(--text); font-size:12px; }
+  @media (max-width:1100px){ .app{ grid-template-columns:1fr; } .panel{ max-height:45vh; } }
 </style>
 </head>
 <body>
 <nav class="topnav">
-  <div style="color:var(--pine); font-weight:700;">Network Topology Demo</div>
-  <div class="nav-links">
+  <div style="color:var(--pine);font-weight:800;">EtherMap</div>
+  <div style="margin-left:auto;">
     <a href="/" class="active">Visualization</a>
     <a href="/upload">Upload</a>
     <a href="/files">Files</a>
@@ -76,425 +54,493 @@
 </nav>
 
 <div class="app">
-  <div class="canvas">
-    <header style="display:flex; align-items:flex-start; gap:12px;">
-      <div style="flex:1"><h1>Network Topology — Live</h1><div class="sub">Nodes = devices · Events from server → realtime</div></div>
-      <div style="text-align:right"><div style="font-size:13px; color:var(--muted)">Status</div><div id="conn_status" style="font-weight:700; color:var(--pine)">connecting</div></div>
-    </header>
-
+  <div class="card canvas">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--pine)">EtherMap — Live</div>
+        <div class="muted">Real directed links + timeline replay + alerts</div>
+      </div>
+      <div>
+        <span class="chip">SSE: <span id="conn_status">connecting</span></span>
+      </div>
+    </div>
     <svg id="viz" preserveAspectRatio="xMidYMid meet"></svg>
-
-    <footer style="margin-top:8px">Live demo · viewer</footer>
+    <div class="row">
+      <button id="pause">Pause</button>
+      <button id="resumeLive">Resume live</button>
+      <button id="exportState">Export state</button>
+      <label class="chip">Import <input type="file" id="importState" accept="application/json" style="display:none"></label>
+      <button id="importBtn">Choose file</button>
+    </div>
+    <div class="row">
+      <span class="muted">Replay:</span>
+      <input id="timeline" type="range" min="0" max="0" value="0" style="flex:1">
+      <button id="playReplay">Play</button>
+      <span class="chip" id="timelineLabel">0 / 0</span>
+    </div>
   </div>
 
-  <div class="panel">
-    <div class="stat">
-      <div><div style="font-size:13px; color:var(--muted)">Nodes</div><div id="node_count" style="font-weight:700; font-size:16px">0</div></div>
-      <div style="text-align:right;"><div style="font-size:13px; color:var(--muted)">Events</div><div id="event_count" style="font-weight:700; font-size:16px">0</div></div>
-    </div>
+  <div class="card panel">
+    <div class="stat"><span>Nodes</span><strong id="node_count">0</strong></div>
+    <div class="stat"><span>Events</span><strong id="event_count">0</strong></div>
+    <div class="stat"><span>Total bytes</span><strong id="bytes_total">0</strong></div>
+    <div class="stat"><span>Burst(20s)</span><strong id="burst_20s">0</strong></div>
 
-    <div style="display:flex; gap:8px;">
-      <button id="center">Center</button>
-      <button id="clear">Clear nodes</button>
-      <button id="pause">Pause events</button>
-    </div>
-    <div id="ui_status" style="font-size:13px; color:var(--muted); min-height:18px;"></div>
-
-    <h3 style="margin:8px 0 4px 0; color:var(--subtle); font-size:13px">Devices (your account)</h3>
-    <div class="devices" id="devicesList">
-      <!-- devices will be inserted here -->
-    </div>
-
-    <div style="display:flex; gap:8px; margin-top:8px;">
+    <div style="font-weight:700;color:var(--subtle)">Devices (profiles)</div>
+    <div class="row">
       <button id="refreshDevices">Refresh</button>
       <button id="registerDevice">Register this device</button>
     </div>
+    <div id="devicesList"></div>
 
-    <h3 style="margin:8px 0 4px 0; color:var(--subtle); font-size:13px">Event Log</h3>
-    <div id="log" role="log" aria-live="polite"></div>
+    <div style="font-weight:700;color:var(--subtle)">Alerts</div>
+    <div id="alerts"></div>
+
+    <div style="font-weight:700;color:var(--subtle)">Analytics Top Talkers</div>
+    <div id="analyticsList" class="muted"></div>
+
+    <div style="font-weight:700;color:var(--subtle)">Room chat (Signaling)</div>
+    <div class="row">
+      <input id="roomInput" placeholder="room name" value="demo-room" style="flex:1">
+      <button id="joinRoom">Join</button>
+      <span class="chip" id="roomPresence">0 members</span>
+    </div>
+    <div id="chatLog"></div>
+    <div class="row">
+      <input id="chatMsg" placeholder="message" style="flex:1">
+      <button id="sendMsg">Send</button>
+    </div>
+
+    <div style="font-weight:700;color:var(--subtle)">Event log</div>
+    <div id="log"></div>
+    <div id="ui_status" class="muted"></div>
   </div>
 </div>
 
 <script>
-/* ---------------------------
-   Utilities & client id
-   --------------------------- */
-function generateClientId(){ const r=Math.random().toString(36).slice(2,8); const t=Date.now().toString(36).slice(-6); return r+'-'+t; }
+function generateClientId(){ return Math.random().toString(36).slice(2,8)+'-'+Date.now().toString(36).slice(-6); }
 function getClientId(){ try{ let id=localStorage.getItem('client_id'); if(!id){ id=generateClientId(); localStorage.setItem('client_id', id);} return id;}catch(e){return generateClientId();}}
 const CLIENT_ID = getClientId();
+let CURRENT_USER = null;
+let eventsPaused = false;
+let replayMode = false;
+let replayTimer = null;
+const eventHistory = [];
+const recentEventTs = [];
+const authFailRecent = {};
+const alerts = [];
+const analytics = { bytes: 0, byDevice: new Map(), burst20: 0 };
+
+function setUiStatus(msg, isErr){
+  const el = document.getElementById('ui_status');
+  el.textContent = msg || '';
+  el.style.color = isErr ? 'var(--love)' : 'var(--muted)';
+}
 
 function apiFetch(url, opts){
   opts = opts || {};
-  opts.credentials = 'include'; // send cookies
+  opts.credentials = 'include';
   return fetch(url, opts).then(async r => {
     const ct = r.headers.get('content-type') || '';
-    if(!r.ok){
-      // try to parse JSON error
-      try { const j = await r.json(); throw j; } catch(e){ throw { ok:false, status:r.status }; }
-    }
-    if(ct.includes('application/json')) return r.json();
-    return r.text();
+    const data = ct.includes('application/json') ? await r.json() : await r.text();
+    if(!r.ok) throw data;
+    return data;
   });
 }
 
-function sendLog(eventObj){
-  // send to /log_event endpoint (no need for beacon here; we want JSON)
-  fetch('/log_event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(eventObj), keepalive:true }).catch(()=>{});
+function sendLog(evt){
+  fetch('/log_event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evt),credentials:'include'}).catch(()=>{});
 }
 
-/* ---------------------------
-   Auth guard (Option A)
-   --------------------------- */
-async function checkAuthOrRedirect(){
-  try {
-    const info = await apiFetch('/me', { method:'GET' });
-    // expected { ok:true, user_id, username }
-    if(!info || !info.ok){
-      window.location.href = '/login';
-      return null;
-    }
-    // store username if needed
-    window.__USER = info;
-    return info;
-  } catch(e){
-    // any error -> redirect to login
-    window.location.href = '/login';
-    return null;
-  }
+function addAlert(text){
+  alerts.unshift({text, ts:new Date().toLocaleTimeString()});
+  while(alerts.length>40) alerts.pop();
+  const el = document.getElementById('alerts');
+  el.innerHTML = alerts.map(a=>`<div style="padding:4px 0;border-bottom:1px solid var(--glass)"><strong style="color:var(--love)">⚠</strong> ${escapeHtml(a.text)} <span class="muted">${a.ts}</span></div>`).join('') || '<span class="muted">No alerts.</span>';
 }
 
-/* ---------------------------
-   Visualization (D3)
-   --------------------------- */
+function updateTimelineUI(){
+  const t = document.getElementById('timeline');
+  t.max = Math.max(0, eventHistory.length - 1);
+  if(!replayMode) t.value = t.max;
+  document.getElementById('timelineLabel').textContent = `${Number(t.value)+1 || 0} / ${eventHistory.length}`;
+}
+
 const svgEl = document.getElementById('viz');
-
-function getVizSize(){ const r = svgEl.getBoundingClientRect(); return { width: Math.max(400, r.width), height: Math.max(300, r.height) }; }
-
-let viz = null;
+let graph = null;
 function initViz(){
-  const {width, height} = getVizSize();
+  const rect = svgEl.getBoundingClientRect();
+  const width = Math.max(600, rect.width);
+  const height = Math.max(360, rect.height);
   svgEl.innerHTML = '';
   const svg = d3.select(svgEl).attr('viewBox', `0 0 ${width} ${height}`);
-  const defs = svg.append('defs');
-  const grad = defs.append('linearGradient').attr('id','gradActive').attr('x1','0%').attr('x2','100%');
-  grad.append('stop').attr('offset','0%').attr('stop-color','#ffd166');
-  grad.append('stop').attr('offset','100%').attr('stop-color','#ff6b6b');
-
-  let nodes = [];
-  let nodesMap = new Map();
-  let links = [];
-  let activeTransfer = new Set();
-
-  const simulation = d3.forceSimulation(nodes)
-    .force('charge', d3.forceManyBody().strength(-140))
+  const linkG = svg.append('g');
+  const nodeG = svg.append('g');
+  const links = [];
+  const nodes = [];
+  const nodesMap = new Map();
+  const linksMap = new Map();
+  const sim = d3.forceSimulation(nodes)
+    .force('charge', d3.forceManyBody().strength(-200))
     .force('center', d3.forceCenter(width/2, height/2))
     .force('collide', d3.forceCollide().radius(16))
-    .force('link', d3.forceLink(links).id(d=>d.id).distance(130).strength(0.25));
-
-  const linkG = svg.append('g').attr('class','links');
-  const nodeG = svg.append('g').attr('class','nodes');
-
-  function nodeRadius(d){ if(d.state==='transferring') return 14; if(d.state==='connected') return 11; if(d.state==='error') return 12; return 9; }
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(140).strength(0.5));
 
   function redraw(){
-    // links
-    const linkSel = linkG.selectAll('line').data(links, d => d.id);
+    const linkSel = linkG.selectAll('line').data(links, d=>d.id);
     linkSel.join(
-      enter => enter.append('line').attr('class','link-fade'),
-      update => update,
-      exit => exit.remove()
+      e=>e.append('line').attr('class', d=>d.active ? 'link-active' : 'link-passive'),
+      u=>u.attr('class', d=>d.active ? 'link-active' : 'link-passive'),
+      x=>x.remove()
     );
-
-    // nodes
-    const nodeSel = nodeG.selectAll('g.node').data(nodes, d => d.id);
-    const nodeEnter = nodeSel.enter().append('g').attr('class','node')
-      .call(d3.drag().on('start',(e,d)=>{ if(!e.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; }).on('drag',(e,d)=>{ d.fx=e.x; d.fy=e.y; }).on('end',(e,d)=>{ if(!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }));
-
-    nodeEnter.append('circle').attr('r', d => nodeRadius(d));
-    nodeEnter.append('text').attr('dy',4).attr('text-anchor','middle').text(d => d.label || d.id);
-
-    nodeSel.merge(nodeEnter).select('circle')
-      .attr('r', d => nodeRadius(d))
-      .attr('class', d => {
-        let c = 'node-circle ';
-        if (d.state==='transferring') c += 'state-transferring';
-        else if (d.state==='connected') c += 'state-connected';
-        else if (d.state==='error') c += 'state-error';
-        else c += 'state-idle';
-        return c;
-      });
-
-    nodeSel.merge(nodeEnter).select('text').text(d=>d.label || d.id);
+    const nodeSel = nodeG.selectAll('g.node').data(nodes, d=>d.id);
+    const enter = nodeSel.enter().append('g').attr('class','node').call(
+      d3.drag()
+      .on('start',(e,d)=>{ if(!e.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag',(e,d)=>{ d.fx=e.x; d.fy=e.y; })
+      .on('end',(e,d)=>{ if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
+    );
+    enter.append('circle').attr('r', 11);
+    enter.append('text').attr('class','node-label').attr('dy',4).attr('text-anchor','middle');
+    nodeSel.merge(enter).select('circle').attr('class', d => d.state === 'transferring' ? 'state-transferring' : d.state === 'error' ? 'state-error' : d.state === 'idle' ? 'state-idle' : 'state-connected');
+    nodeSel.merge(enter).select('text').text(d=>d.label || d.id);
     nodeSel.exit().remove();
-
-    simulation.nodes(nodes).on('tick', ()=> {
+    sim.nodes(nodes).on('tick',()=>{
       linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
-      nodeG.selectAll('g.node').attr('transform', d=>`translate(${d.x},${d.y})`);
+      nodeG.selectAll('g.node').attr('transform',d=>`translate(${d.x},${d.y})`);
     });
-
-    simulation.force('link').links(links);
-    simulation.alpha(0.6).restart();
-
+    sim.force('link').links(links);
+    sim.alpha(0.7).restart();
     document.getElementById('node_count').textContent = nodes.length;
   }
 
   function upsertNode(id, label){
     if(!id) return null;
-    if(nodesMap.has(id)) {
-      const n = nodesMap.get(id);
-      if(label) n.label = label;
-      return n;
-    }
-    const node = { id: id, label: label || id, state:'connected', lastEventTs: Date.now() };
-    nodes.push(node);
-    nodesMap.set(id, node);
-    // link to an existing node for visual structure (prefill)
-    if(nodes.length>1){
-      const idx = Math.floor(Math.random() * (nodes.length - 1));
-      const target = nodes[idx];
-      links.push({ id:`link-${node.id}-${target.id}`, source: node, target: target });
-    }
-    redraw();
-    return node;
+    if(nodesMap.has(id)){ const n = nodesMap.get(id); if(label) n.label = label; return n; }
+    const node = {id, label: label || id, state:'connected'};
+    nodes.push(node); nodesMap.set(id,node); redraw(); return node;
   }
 
-  function setNodeState(id, state, extra){
-    const node = upsertNode(id);
+  function setNodeState(id, state, label){
+    const node = upsertNode(id, label);
     if(!node) return;
-    node.state = state;
-    node.lastEventTs = Date.now();
+    node.state = state || 'connected';
     redraw();
   }
 
-  function addTransferLink(a,b){
-    const id = `xfer-${a}-${b}`;
-    if(activeTransfer.has(id)) return;
-    activeTransfer.add(id);
-    const s = upsertNode(a);
-    const t = upsertNode(b);
-    links.push({ id:id, source: s, target: t, active:true });
-    redraw();
-  }
-
-  function removeTransferLink(a,b){
-    const id = `xfer-${a}-${b}`;
-    if(!activeTransfer.has(id)) return;
-    activeTransfer.delete(id);
-    links = links.filter(l => l.id !== id);
-    redraw();
-  }
-
-  // expire transfer links if stuck
-  setInterval(()=>{
-    const now = Date.now();
-    let changed = false;
-    nodes.forEach(n => {
-      if(n.state === 'transferring' && now - n.lastEventTs > 9000){
-        n.state = 'connected'; changed = true;
-      }
-    });
-    if(changed) redraw();
-  }, 3000);
-
-  viz = { upsertNode, setNodeState, addTransferLink, removeTransferLink, redraw };
-  upsertNode('SERVER', 'SERVER'); redraw();
-}
-
-// init & resize handling
-initViz();
-window.addEventListener('resize', () => { initViz(); });
-
-/* ---------------------------
-   SSE hookup & event handling
-   --------------------------- */
-let eventCounter = 0;
-let eventsPaused = false;
-function setUiStatus(msg, isError){
-  const el = document.getElementById('ui_status');
-  el.textContent = msg || '';
-  el.style.color = isError ? 'var(--love)' : 'var(--muted)';
-}
-function pushLog(type, detail){
-  eventCounter++;
-  document.getElementById('event_count').textContent = eventCounter;
-  const log = document.getElementById('log');
-  const div = document.createElement('div'); div.textContent = type + ' ' + JSON.stringify(detail);
-  log.insertBefore(div, log.firstChild);
-  if(log.children.length > 400) log.removeChild(log.lastChild);
-}
-
-const es = new EventSource('/events');
-es.onopen = () => { setConnStatus(true); pushLog('sse','connected'); };
-// handle messages
-es.onmessage = (e) => {
-  if(eventsPaused) return;
-  try {
-    const obj = JSON.parse(e.data);
-    const t = obj.type; const d = obj.detail || {}; const ip = d.ip || null;
-    pushLog(t, d);
-    switch(t){
-      case 'client_connected':
-        viz.upsertNode(ip || d.client_id, d.name || d.device || d.label);
-        viz.setNodeState(ip || d.client_id, 'connected');
-        break;
-      case 'client_disconnected':
-        viz.setNodeState(ip || d.client_id, 'idle');
-        break;
-      case 'put_start':
-        viz.setNodeState(d.ip || d.client_id,'transferring',d);
-        viz.addTransferLink('SERVER', d.ip || d.client_id);
-        break;
-      case 'put_done':
-        viz.setNodeState(d.ip || d.client_id,'connected',d);
-        viz.removeTransferLink('SERVER', d.ip || d.client_id);
-        break;
-      case 'get_start':
-        viz.setNodeState(d.ip || d.client_id,'transferring',d);
-        viz.addTransferLink(d.ip || d.client_id, 'SERVER');
-        break;
-      case 'get_done':
-        viz.setNodeState(d.ip || d.client_id,'connected',d);
-        viz.removeTransferLink(d.ip || d.client_id, 'SERVER');
-        break;
-      default:
-        // accept generic "hello" or "viewer_connected" too
-        if(t === 'hello' || t === 'viewer_connected'){
-          const id = d.ip || d.client_id || d.id;
-          viz.upsertNode(id, d.name || d.device || d.label);
-          viz.setNodeState(id, 'connected');
-        }
-        break;
+  function edgeKey(src, dst, kind){ return `${src}->${dst}:${kind || 'flow'}`; }
+  function upsertEdge(src, dst, kind, active){
+    if(!src || !dst) return;
+    const s = upsertNode(src);
+    const t = upsertNode(dst);
+    const id = edgeKey(src,dst,kind);
+    if(!linksMap.has(id)){
+      const edge = {id, source:s, target:t, active: !!active, kind: kind || 'flow'};
+      links.push(edge); linksMap.set(id,edge);
+    } else {
+      linksMap.get(id).active = !!active;
     }
-  } catch(err){
-    pushLog('parse_error', e.data);
+    redraw();
   }
-};
-es.onerror = () => { setConnStatus(false); setUiStatus('SSE connection lost. Retrying…', true); pushLog('sse_error','connection lost'); };
 
-function setConnStatus(connected){
-  const cs = document.getElementById('conn_status');
-  cs.textContent = connected ? 'connected' : 'disconnected';
-  cs.style.color = connected ? 'var(--pine)' : 'var(--gold)';
+  function resetGraph(){
+    links.splice(0, links.length);
+    nodes.splice(0, nodes.length);
+    linksMap.clear();
+    nodesMap.clear();
+    upsertNode('SERVER', 'SERVER');
+    redraw();
+  }
+
+  graph = {upsertNode, setNodeState, upsertEdge, resetGraph};
+  upsertNode('SERVER','SERVER');
+}
+initViz();
+window.addEventListener('resize', ()=>initViz());
+
+function addLog(type, detail){
+  const el = document.getElementById('log');
+  const row = document.createElement('div');
+  row.textContent = `${type} ${JSON.stringify(detail || {})}`;
+  el.prepend(row);
+  while(el.childNodes.length > 300) el.removeChild(el.lastChild);
+  document.getElementById('event_count').textContent = eventHistory.length;
 }
 
-/* ---------------------------
-   UI controls
-   --------------------------- */
-document.getElementById('center').onclick = () => { initViz(); };
-document.getElementById('clear').onclick = () => { location.reload(); };
-document.getElementById('pause').onclick = function(){
-  eventsPaused = !eventsPaused;
-  this.textContent = eventsPaused ? 'Resume events' : 'Pause events';
-  setUiStatus(eventsPaused ? 'Event stream paused.' : 'Event stream resumed.', false);
-};
+function updateAnalyticsDevice(id, bytes){
+  if(!id) return;
+  if(!analytics.byDevice.has(id)) analytics.byDevice.set(id,{events:0,bytes:0});
+  const v = analytics.byDevice.get(id);
+  v.events += 1;
+  v.bytes += Number(bytes || 0);
+}
 
-/* ---------------------------
-   Devices panel & registration
-   --------------------------- */
+function renderAnalytics(){
+  const list = [...analytics.byDevice.entries()].map(([id,v])=>({id,...v})).sort((a,b)=>b.bytes-a.bytes || b.events-a.events).slice(0,8);
+  document.getElementById('analyticsList').innerHTML = list.map(x=>`<div style="padding:4px 0;border-bottom:1px solid var(--glass)"><strong>${escapeHtml(x.id)}</strong> <span class="muted">${x.events} events · ${x.bytes} bytes</span></div>`).join('') || '<span class="muted">No analytics yet.</span>';
+  document.getElementById('bytes_total').textContent = analytics.bytes;
+  document.getElementById('burst_20s').textContent = analytics.burst20;
+}
+
+function resetDerivedState(){
+  analytics.bytes = 0;
+  analytics.byDevice.clear();
+  recentEventTs.length = 0;
+  Object.keys(authFailRecent).forEach(k=>delete authFailRecent[k]);
+  alerts.length = 0;
+  document.getElementById('alerts').innerHTML = '<span class="muted">No alerts.</span>';
+}
+
+function handleRules(evt){
+  const t = evt.type;
+  const d = evt.detail || {};
+  const now = Date.now();
+  recentEventTs.push(now);
+  while(recentEventTs.length && now - recentEventTs[0] > 10000) recentEventTs.shift();
+  analytics.burst20 = recentEventTs.filter(ts=>now-ts<=20000).length;
+  if(recentEventTs.length >= 25) addAlert(`Burst traffic detected: ${recentEventTs.length} events in 10s`);
+  if(t === 'error' || t === 'transfer_failed') addAlert(`Transfer failure from ${d.ip || d.src || 'unknown'}`);
+  if(t === 'auth_failed'){
+    const ip = d.ip || 'unknown';
+    authFailRecent[ip] = authFailRecent[ip] || [];
+    authFailRecent[ip].push(now);
+    authFailRecent[ip] = authFailRecent[ip].filter(ts=>now-ts<=300000);
+    if(authFailRecent[ip].length >= 3) addAlert(`Repeated auth failures from ${ip}`);
+  }
+}
+
+function applyEvent(evt, record){
+  const t = evt.type;
+  const d = evt.detail || {};
+  const src = d.src || d.ip || d.client_id;
+  const dst = d.dst || (t.startsWith('get_') ? src ? 'SERVER' : '' : 'SERVER');
+  if(record){
+    eventHistory.push(evt);
+    if(eventHistory.length > 2000) eventHistory.shift();
+    updateTimelineUI();
+    addLog(t,d);
+  }
+  handleRules(evt);
+  if(src) graph.upsertNode(src, d.name || d.label || src);
+  if(dst) graph.upsertNode(dst, dst);
+  if(t === 'put_start' || t === 'get_start'){
+    graph.setNodeState(src,'transferring',d.name || src);
+    graph.upsertEdge(src, dst || 'SERVER', d.direction || t, true);
+  } else if(t === 'put_done' || t === 'get_done'){
+    graph.setNodeState(src,'connected',d.name || src);
+    graph.upsertEdge(src, dst || 'SERVER', d.direction || t, false);
+  } else if(t === 'client_disconnected'){
+    graph.setNodeState(src,'idle',d.name || src);
+  } else if(t === 'error'){
+    graph.setNodeState(src,'error',d.name || src);
+  } else if(t === 'client_connected' || t === 'viewer_connected'){
+    graph.setNodeState(src,'connected',d.name || src);
+  }
+  updateAnalyticsDevice(src, Number(d.size || 0));
+  analytics.bytes += Number(d.size || 0);
+  renderAnalytics();
+}
+
+function replayTo(index){
+  replayMode = true;
+  graph.resetGraph();
+  resetDerivedState();
+  const end = Math.max(0, Math.min(index, eventHistory.length - 1));
+  for(let i=0;i<=end;i++) applyEvent(eventHistory[i], false);
+  document.getElementById('timeline').value = end;
+  updateTimelineUI();
+}
+
+async function checkAuthOrRedirect(){
+  try{
+    const me = await apiFetch('/me',{method:'GET'});
+    if(!me || !me.ok){ location.href = '/login'; return null; }
+    CURRENT_USER = me;
+    return me;
+  } catch(e){ location.href = '/login'; return null; }
+}
+
 async function fetchDevices(){
-  try {
-    const j = await apiFetch('/devices/list', { method:'GET' });
-    if(!j || !j.ok) throw 'no devices';
+  try{
+    const j = await apiFetch('/devices/list');
     renderDevices(j.devices || []);
   } catch(e){
-    // could be not implemented on server yet
-    document.getElementById('devicesList').innerHTML = '<div style="color:var(--subtle)">Devices listing unavailable.</div>';
+    document.getElementById('devicesList').innerHTML = '<div class="muted">Device listing unavailable.</div>';
   }
 }
 
 function renderDevices(devs){
   const wrap = document.getElementById('devicesList');
+  if(!devs.length){ wrap.innerHTML = '<div class="muted">No devices registered.</div>'; return; }
   wrap.innerHTML = '';
-  if(!devs.length){
-    wrap.innerHTML = '<div style="color:var(--subtle)">No devices registered for this account.</div>';
-    return;
-  }
-  devs.forEach(d => {
+  devs.forEach(d=>{
     const row = document.createElement('div');
     row.className = 'device-row';
-    const meta = document.createElement('div'); meta.className='device-meta';
-    const dot = document.createElement('span'); dot.className='dot'; dot.style.background = (d.client_id === CLIENT_ID) ? 'var(--foam)' : 'var(--muted)';
-    const nm = document.createElement('div'); nm.innerHTML = `<div class="device-name">${escapeHtml(d.name||d.client_id)}</div><div class="device-id">${escapeHtml(d.client_id)} · ${d.last_seen||'-'}</div>`;
-    meta.appendChild(dot); meta.appendChild(nm);
-    const actions = document.createElement('div');
-    const btn = document.createElement('button'); btn.textContent='Center';
-    btn.onclick = () => { viz.upsertNode(d.client_id, d.name); viz.setNodeState(d.client_id,'connected'); centerOnNode(d.client_id); };
-    actions.appendChild(btn);
-    row.appendChild(meta); row.appendChild(actions);
+    row.innerHTML = `<div>${escapeHtml(d.icon || '💻')} <strong>${escapeHtml(d.name || d.client_id)}</strong><div class="muted">${escapeHtml(d.client_id)} · ${escapeHtml(d.device_type || 'client')}</div></div>`;
+    const btn = document.createElement('button');
+    btn.textContent = 'Edit';
+    btn.onclick = async () => {
+      const name = prompt('Device name', d.name || d.client_id);
+      if(name === null) return;
+      const deviceType = prompt('Device type (client/server/mobile/iot)', d.device_type || 'client');
+      if(deviceType === null) return;
+      const icon = prompt('Device icon (emoji)', d.icon || '💻');
+      if(icon === null) return;
+      try{
+        await apiFetch('/devices/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:d.client_id,name,device_type:deviceType,icon})});
+        setUiStatus('Device profile updated.');
+        fetchDevices();
+      } catch(e){ setUiStatus('Could not update profile.', true); }
+    };
+    row.appendChild(btn);
     wrap.appendChild(row);
   });
 }
 
-function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+async function autoRegisterDevice(){
+  const defaults = {
+    client_id: CLIENT_ID,
+    name: navigator.platform || CLIENT_ID,
+    device_type: /android|iphone/i.test(navigator.userAgent) ? 'mobile' : 'client',
+    icon: /android|iphone/i.test(navigator.userAgent) ? '📱' : '💻',
+  };
+  try{
+    await apiFetch('/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(defaults)});
+    sendLog({type:'client_connected', detail:{ip:CLIENT_ID,src:CLIENT_ID,dst:'SERVER',name:defaults.name,device_type:defaults.device_type,icon:defaults.icon}});
+  } catch(e){}
+}
 
-document.getElementById('refreshDevices').addEventListener('click', fetchDevices);
-document.getElementById('registerDevice').addEventListener('click', async () => {
-  const deviceName = prompt('Name for this device?', navigator.platform || CLIENT_ID) || CLIENT_ID;
-  try {
-    const res = await apiFetch('/devices/register', { method:'POST', body: JSON.stringify({ client_id: CLIENT_ID, name: deviceName }) });
-    // refresh list and announce presence
-    fetchDevices();
-    sendLog({ ts:new Date().toISOString(), type:'client_connected', detail:{ ip: CLIENT_ID, name: deviceName } });
-    viz.upsertNode(CLIENT_ID, deviceName); viz.setNodeState(CLIENT_ID,'connected');
-    setUiStatus('Device registered.', false);
-  } catch(e){
-    setUiStatus('Could not register device.', true);
-  }
+async function pullAnalytics(){
+  try{
+    const a = await apiFetch('/api/analytics');
+    if(!a.ok) return;
+    document.getElementById('burst_20s').textContent = a.totals.burst_20s;
+  } catch(e){}
+}
+
+function escapeHtml(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+// SSE live feed
+const es = new EventSource('/events');
+es.onopen = () => { document.getElementById('conn_status').textContent = 'connected'; };
+es.onerror = () => { document.getElementById('conn_status').textContent = 'disconnected'; addAlert('SSE disconnected'); };
+es.onmessage = (e) => {
+  if(eventsPaused || replayMode) return;
+  try{ applyEvent(JSON.parse(e.data), true); } catch(err){ addLog('parse_error', {raw:e.data}); }
+};
+
+// Timeline controls
+document.getElementById('timeline').addEventListener('input', (ev)=> replayTo(Number(ev.target.value)));
+document.getElementById('playReplay').addEventListener('click', ()=>{
+  if(replayTimer){ clearInterval(replayTimer); replayTimer = null; return; }
+  replayMode = true;
+  replayTimer = setInterval(()=>{
+    const t = document.getElementById('timeline');
+    let next = Number(t.value) + 1;
+    if(next >= eventHistory.length){ clearInterval(replayTimer); replayTimer = null; return; }
+    replayTo(next);
+  }, 450);
+});
+document.getElementById('resumeLive').addEventListener('click', ()=>{
+  replayMode = false;
+  replayTo(eventHistory.length - 1);
+  replayMode = false;
+  setUiStatus('Live mode resumed.');
+});
+document.getElementById('pause').addEventListener('click', (e)=>{
+  eventsPaused = !eventsPaused;
+  e.target.textContent = eventsPaused ? 'Resume' : 'Pause';
 });
 
-/* automatically register this device once after auth check */
-async function autoRegisterDeviceIfNeeded(username){
-  const name = navigator.platform || navigator.userAgent.split(')')[0];
-  try {
-    await apiFetch('/devices/register', { method:'POST', body: JSON.stringify({ client_id: CLIENT_ID, name: name }) });
-    // announce to events
-    sendLog({ ts:new Date().toISOString(), type:'client_connected', detail:{ ip: CLIENT_ID, name: name } });
-    viz.upsertNode(CLIENT_ID, name); viz.setNodeState(CLIENT_ID, 'connected');
-  } catch(e){
-    // silent
-  }
-}
+// Export / import
+document.getElementById('exportState').addEventListener('click', async ()=>{
+  try{
+    const resp = await apiFetch('/api/state/export');
+    const data = JSON.stringify(resp.payload, null, 2);
+    const blob = new Blob([data], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ethermap-export-${Date.now()}.json`;
+    a.click();
+    setUiStatus('State exported.');
+  } catch(e){ setUiStatus('Export failed.', true); }
+});
+document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importState').click());
+document.getElementById('importState').addEventListener('change', async (ev)=>{
+  const file = ev.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    await apiFetch('/api/state/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({payload})});
+    setUiStatus('State imported. Reloading...');
+    location.reload();
+  } catch(e){ setUiStatus('Import failed.', true); }
+});
 
-/* center highlight helpers */
-function centerOnNode(id){
-  // brute-force re-init to center visually: create special node and re-run
-  viz.upsertNode(id);
-  // small animation: highlight node by setting transferring then back
-  viz.setNodeState(id,'transferring');
-  setTimeout(()=>viz.setNodeState(id,'connected'), 900);
-}
+// Devices
+document.getElementById('refreshDevices').addEventListener('click', fetchDevices);
+document.getElementById('registerDevice').addEventListener('click', async ()=>{
+  const name = prompt('Device name', navigator.platform || CLIENT_ID) || CLIENT_ID;
+  const device_type = prompt('Device type', 'client') || 'client';
+  const icon = prompt('Device icon', '💻') || '💻';
+  try{
+    await apiFetch('/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,name,device_type,icon})});
+    sendLog({type:'client_connected',detail:{ip:CLIENT_ID,src:CLIENT_ID,dst:'SERVER',name,device_type,icon}});
+    fetchDevices();
+  } catch(e){ setUiStatus('Could not register device.', true); }
+});
 
-/* ---------------------------
-   Boot sequence
-   --------------------------- */
+// Rooms / chat
+const socket = io(`${location.protocol}//${location.hostname}:5050`, {transports:['websocket','polling']});
+let currentRoom = '';
+function chatLine(msg){ const el = document.getElementById('chatLog'); const row = document.createElement('div'); row.innerHTML = msg; el.appendChild(row); el.scrollTop = el.scrollHeight; }
+socket.on('connect', ()=>chatLine('<span class="muted">socket connected</span>'));
+socket.on('system', data=>chatLine(`<span class="muted">${escapeHtml(data.msg || '')}</span>`));
+socket.on('channel_msg', data=>chatLine(`<strong>${escapeHtml(data.from)}</strong>: ${escapeHtml(data.msg)} <span class="muted">${escapeHtml(data.ts || '')}</span>`));
+socket.on('room_presence', data=>{
+  if(data.channel && currentRoom && data.channel !== currentRoom) return;
+  document.getElementById('roomPresence').textContent = `${(data.members || []).length} members`;
+});
+socket.on('room_history', data=>{
+  if(data.channel && currentRoom && data.channel !== currentRoom) return;
+  const el = document.getElementById('chatLog');
+  el.innerHTML = '';
+  (data.messages || []).forEach(m=>chatLine(`<strong>${escapeHtml(m.from)}</strong>: ${escapeHtml(m.msg)} <span class="muted">${escapeHtml(m.ts || '')}</span>`));
+});
+document.getElementById('joinRoom').addEventListener('click', ()=>{
+  const room = (document.getElementById('roomInput').value || '').trim();
+  if(!room) return;
+  if(currentRoom) socket.emit('leave_channel', {channel: currentRoom});
+  currentRoom = room;
+  socket.emit('join_channel', {channel: room});
+  socket.emit('room_state', {channel: room});
+  chatLine(`<span class="muted">joined ${escapeHtml(room)}</span>`);
+});
+document.getElementById('sendMsg').addEventListener('click', ()=>{
+  const msg = (document.getElementById('chatMsg').value || '').trim();
+  if(!msg || !currentRoom) return;
+  socket.emit('channel_msg', {channel: currentRoom, msg});
+  document.getElementById('chatMsg').value = '';
+});
+
+document.getElementById('logoutLink').addEventListener('click', async (ev)=>{
+  ev.preventDefault();
+  try{ await apiFetch('/logout',{method:'POST'});}catch(e){}
+  location.href = '/login';
+});
+
 (async function boot(){
-  // 1) check auth (server will redirect if not logged in)
   const me = await checkAuthOrRedirect();
   if(!me) return;
-  // 2) init viz already done; auto register device under account and fetch device list
-  await autoRegisterDeviceIfNeeded(me.username || me.user_id);
+  graph.resetGraph();
+  await autoRegisterDevice();
   await fetchDevices();
-  setUiStatus(`Signed in as ${me.username || me.user_id}.`, false);
-  // keep device list fresh
-  setInterval(fetchDevices, 10000);
-
-  // also emit a viewer_connected ping every 20 seconds so node stays alive
-  setInterval(()=>{
-    sendLog({ ts:new Date().toISOString(), type:'viewer_connected', detail:{ ip: CLIENT_ID, name: navigator.platform || CLIENT_ID } });
-  }, 20000);
+  await pullAnalytics();
+  setInterval(fetchDevices, 12000);
+  setInterval(pullAnalytics, 8000);
+  setUiStatus(`Signed in as ${me.username}.`);
 })();
-
-/* Logout link behavior */
-document.getElementById('logoutLink').addEventListener('click', async (ev) => {
-  ev.preventDefault();
-  try {
-    await apiFetch('/logout', { method:'POST' });
-  } catch(e){}
-  // clear client-side id if you want (optional)
-  // localStorage.removeItem('client_id');
-  window.location.href = '/login';
-});
-
 </script>
 </body>
 </html>

@@ -3,29 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Files — Network Topology</title>
+<title>Files — EtherMap</title>
 <style>
-:root{--base:#faf4ed;--overlay:#f3ebe7;--surface:#fffaf6;--muted:#6b646f;--pine:#316a78;--foam:#5fb6b1;--rose:#e6b8c4}
-html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:#2b2430}
-.topnav{position:fixed;left:0;right:0;top:0;padding:12px 48px 12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid rgba(0,0,0,0.05)}
+:root{--base:#191724;--overlay:#26233a;--surface:#1f1d2e;--muted:#908caa;--pine:#31748f;--foam:#9ccfd8;--rose:#ebbcba;--text:#e0def4;--glass:rgba(224,222,244,0.08)}
+html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:var(--text)}
+.topnav{position:fixed;left:0;right:0;top:0;padding:12px 48px 12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid var(--glass)}
 .topnav a{margin-left:14px;text-decoration:none;color:var(--pine);font-weight:700}
 .container{padding:90px 20px 40px;display:flex;justify-content:center}
-.card{width:900px;background:var(--surface);padding:24px;border-radius:12px;box-shadow:0 20px 40px rgba(11,9,12,0.06)}
+.card{width:900px;background:var(--surface);padding:24px;border-radius:12px;border:1px solid var(--glass);box-shadow:0 20px 40px rgba(11,9,12,0.35)}
 h1{color:var(--pine);text-align:left;margin:0 0 14px 0}
-.table{margin-top:12px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,0.02)}
-.row{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.03);align-items:center}
+.table{margin-top:12px;border-radius:8px;overflow:hidden;background:var(--overlay);border:1px solid var(--glass)}
+.row{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--glass);align-items:center}
 .row:last-child{border-bottom:none}
 .filename{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px}
+.filename a{color:var(--foam);text-decoration:none}
+.filename a:hover{text-decoration:underline}
 .meta{width:180px;text-align:right;color:var(--muted);font-size:0.95rem}
-.actions{width:200px;text-align:right}
-.btn{background:var(--pine);color:white;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;margin-left:8px}
+.actions{width:360px;text-align:right}
+.btn{display:inline-block;background:var(--pine);color:var(--text);border:1px solid var(--glass);padding:8px 10px;border-radius:8px;cursor:pointer;margin-left:8px;text-decoration:none}
+.btn:hover{background:var(--foam);color:var(--base)}
 .small{color:var(--muted);font-size:0.9rem}
 .footer{margin-top:18px;text-align:center}
 </style>
 </head>
 <body>
 <nav class="topnav">
-  <div style="font-weight:700;color:var(--pine)">Network Topology Demo</div>
+  <div style="font-weight:700;color:var(--pine)">EtherMap</div>
   <div style="margin-left:auto">
     <a href="/">Visualization</a>
     <a href="/upload">Upload</a>
@@ -95,6 +98,31 @@ function mkRow(file){
 
   acts.appendChild(dl);
   acts.appendChild(tbtn);
+  const rbtn = document.createElement('button');
+  rbtn.className = 'btn';
+  rbtn.textContent = 'Rename';
+  rbtn.addEventListener('click', async ()=>{
+    const next = prompt('Rename file to:', file.name);
+    if(!next || next === file.name) return;
+    try{
+      const res = await fetchJson('/api/files/rename', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({old_name:file.name,new_name:next})});
+      if(res.ok){ setStatus(`Renamed ${file.name} → ${next}`, false); loadFiles(); }
+      else setStatus('Rename failed.', true);
+    }catch(err){ setStatus('Rename failed: '+err.message, true); }
+  });
+  const xbtn = document.createElement('button');
+  xbtn.className = 'btn';
+  xbtn.textContent = 'Delete';
+  xbtn.addEventListener('click', async ()=>{
+    if(!confirm(`Delete ${file.name}?`)) return;
+    try{
+      const res = await fetchJson('/api/files/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:file.name})});
+      if(res.ok){ setStatus(`Deleted ${file.name}`, false); loadFiles(); }
+      else setStatus('Delete failed.', true);
+    }catch(err){ setStatus('Delete failed: '+err.message, true); }
+  });
+  acts.appendChild(rbtn);
+  acts.appendChild(xbtn);
 
   div.appendChild(name);
   div.appendChild(meta);

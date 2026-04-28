@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Register — Network Topology</title>
+<title>Register — EtherMap</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root {
-  --base:#faf4ed; --surface:#fffaf6; --overlay:#f3ebe7;
-  --muted:#6b646f; --subtle:#7f7482; --text:#2b2430;
-  --rose:#e6b8c4; --pine:#316a78; --foam:#5fb6b1; --gold:#c08a4b;
+  --base:#191724; --surface:#1f1d2e; --overlay:#26233a;
+  --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
+  --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8; --gold:#f6c177; --glass:rgba(224,222,244,0.08);
 }
 
 html, body {
@@ -22,25 +22,25 @@ html, body {
 
 .card {
   width:360px; background:var(--surface); padding:28px;
-  border-radius:14px; box-shadow:0 12px 40px rgba(18,16,20,0.09);
-  border:1px solid rgba(43,36,48,0.06);
+  border-radius:14px; box-shadow:0 12px 40px rgba(11,9,12,0.35);
+  border:1px solid var(--glass);
 }
 
 h2 { margin:0 0 14px 0; color:var(--pine); font-size:22px; }
 label { display:block; margin-top:14px; font-size:13px; color:var(--subtle); }
 input[type=text], input[type=password] {
   width:100%; padding:10px; margin-top:6px;
-  border-radius:8px; border:1px solid rgba(43,36,48,0.1);
-  background:var(--overlay); font-size:14px;
+  border-radius:8px; border:1px solid var(--glass);
+  background:var(--overlay); color:var(--text); font-size:14px;
 }
 
 button {
   margin-top:20px; width:100%; padding:12px;
   background:var(--foam); color:var(--base);
-  border:none; border-radius:10px; font-weight:700; cursor:pointer;
+  border:1px solid var(--glass); border-radius:10px; font-weight:700; cursor:pointer;
   box-shadow:0 6px 18px rgba(95,182,177,0.15); font-size:15px;
 }
-button:hover { background:var(--pine); }
+button:hover { background:var(--pine); color:var(--text); }
 
 a {
   display:block; margin-top:14px; text-align:center;
