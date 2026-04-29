@@ -86,58 +86,58 @@ def fmt_mtime(ts):
         return "-"
 
 
-def write_state_from_events():
-    """Rebuild a lightweight node state map from recent events."""
-    latest = {}
+# ---------- State Management ----------
+STATE_CACHE = {"nodes": {}}
+
+
+def load_initial_state():
+    """Load state from log on startup."""
     if not os.path.exists(EVENTS_FILE):
-        with open(STATE_FILE, "w") as f:
-            json.dump({"nodes": []}, f)
         return
     try:
         with open(EVENTS_FILE, "r") as f:
             for line in f:
                 try:
                     evt = json.loads(line)
+                    update_cache_from_event(evt)
                 except Exception:
                     continue
-                detail = evt.get("detail") or {}
-                ip = detail.get("ip") or detail.get("client_id") or detail.get("src")
-                if not ip:
-                    continue
-                evt_type = evt.get("type") or "unknown"
-                if evt_type in ("put_start", "get_start"):
-                    state = "transferring"
-                elif evt_type in ("client_disconnected",):
-                    state = "idle"
-                elif evt_type in ("error",):
-                    state = "error"
-                else:
-                    state = "connected"
-                latest[str(ip)] = state
-    except Exception:
-        pass
-    with open(STATE_FILE, "w") as f:
-        json.dump({"nodes": [{"ip": k, "state": v} for k, v in latest.items()]}, f)
+    except Exception as e:
+        print(f"Error loading initial state: {e}")
+    save_state_to_file()
 
 
-def read_recent_events(limit=500):
-    if not os.path.exists(EVENTS_FILE):
-        return []
-    events = []
-    with open(EVENTS_FILE, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                events.append(json.loads(line))
-            except Exception:
-                continue
-    return events[-limit:] if limit > 0 else events
+def update_cache_from_event(evt):
+    detail = evt.get("detail") or {}
+    ip = detail.get("ip") or detail.get("client_id") or detail.get("src")
+    if not ip:
+        return
+    ip = str(ip)
+    evt_type = evt.get("type") or "unknown"
+
+    if evt_type in ("put_start", "get_start"):
+        state = "transferring"
+    elif evt_type in ("client_disconnected", "device_removed"):
+        state = "idle"
+    elif evt_type in ("error",):
+        state = "error"
+    else:
+        state = "connected"
+
+    STATE_CACHE["nodes"][ip] = state
+
+
+def save_state_to_file():
+    try:
+        nodes = [{"ip": k, "state": v} for k, v in STATE_CACHE["nodes"].items()]
+        with open(STATE_FILE, "w") as f:
+            json.dump({"nodes": nodes}, f)
+    except Exception as e:
+        print(f"Error saving state file: {e}")
 
 
 def append_event(event_obj):
-    """Normalize and append one event to the event log + derived state file."""
+    """Normalize and append one event to the event log + update in-memory state."""
     evt_type = str(event_obj.get("type") or "raw")
     detail = event_obj.get("detail")
     if not isinstance(detail, dict):
@@ -149,7 +149,9 @@ def append_event(event_obj):
     }
     with open(EVENTS_FILE, "a") as f:
         f.write(json.dumps(evt) + "\n")
-    write_state_from_events()
+
+    update_cache_from_event(evt)
+    save_state_to_file()
 
 
 def parse_ts(ts_text):
@@ -648,6 +650,24 @@ def delete_file_api():
     return jsonify({"ok": True})
 
 
+@app.route("/api/admin/reset", methods=["POST"])
+@login_required
+def admin_reset_api():
+    """Wipe demo state: logs, state file, and uploads."""
+    try:
+        # Using full path to be safe
+        script_path = os.path.join(BASE_DIR, "reset_demo.sh")
+        if os.path.exists(script_path):
+            os.system(f"bash {script_path} --yes")
+            # Clear in-memory cache and re-init
+            STATE_CACHE["nodes"] = {}
+            load_initial_state()
+            return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": "Reset script not found"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/analytics")
 @login_required
 def analytics_api():
@@ -856,8 +876,24 @@ def serve_temp(token):
     except Exception as e:
         print("serve_temp error:", e)
         abort(500)
+def read_recent_events(limit=500):
+    if not os.path.exists(EVENTS_FILE):
+        return []
+    events = []
+    with open(EVENTS_FILE, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                events.append(json.loads(line))
+            except Exception:
+                continue
+    return events[-limit:] if limit > 0 else events
 
 
+def parse_ts(ts_text):
+    ...
 # ---------- Run server (init DB inside app context) ----------
 if __name__ == "__main__":
     # create DB schema inside app context
@@ -866,4 +902,6 @@ if __name__ == "__main__":
     print(f"Events server running at http://{HOST}:{PORT}/")
     # ensure events file exists
     open(EVENTS_FILE, "a").close()
+    load_initial_state()
     app.run(host=HOST, port=PORT, debug=False)
+

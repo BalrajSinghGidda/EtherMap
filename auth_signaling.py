@@ -72,6 +72,7 @@ def on_signal(data):
     to = data.get("to")
     if to:
         emit("signal", data, to=to)
+        emit_event("signaling", {"src": request.sid, "dst": to, "type": data.get("type")})
 
 
 @socketio.on("list_peers")

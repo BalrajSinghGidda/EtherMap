@@ -12,11 +12,17 @@
     --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
     --love:#eb6f92; --gold:#f6c177; --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8;
   }
+  [data-theme="light"] {
+    --base:#faf4ed; --surface:#fffaf6; --overlay:#f2e9e1; --glass:rgba(43,36,48,0.05);
+    --muted:#6e6a86; --subtle:#797593; --text:#575279;
+    --love:#b4637a; --gold:#ea9d34; --rose:#d7827e; --pine:#286983; --foam:#56949f;
+  }
   html, body { height:100vh; margin:0; overflow:hidden; }
-  body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); }
-  .topnav { position:fixed; top:0; left:0; right:0; padding:12px 48px 12px 20px; display:flex; align-items:center; background:var(--overlay); border-bottom:1px solid var(--glass); z-index:10; }
+  body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); transition: background 0.3s, color 0.3s; }
+  .topnav { position:fixed; top:0; left:0; right:0; padding:12px 20px; display:flex; align-items:center; background:var(--overlay); border-bottom:1px solid var(--glass); z-index:10; }
   .topnav a { text-decoration:none; color:var(--pine); font-weight:700; margin-left:14px; }
   .topnav a.active { color:var(--rose); }
+  .theme-toggle { margin-left:14px; cursor:pointer; font-size:18px; user-select:none; }
   .app { display:grid; grid-template-columns: 1fr 420px; gap:12px; height:calc(100vh - 72px); padding:86px 12px 12px; box-sizing:border-box; }
   .card { background:var(--surface); border:1px solid var(--glass); border-radius:0; box-shadow:none; }
   .canvas { display:flex; flex-direction:column; padding:12px; }
@@ -33,7 +39,16 @@
   .device-row:last-child { border-bottom:none; }
   .chip { display:inline-block; padding:2px 6px; border-radius:0; background:var(--overlay); border:1px solid var(--glass); font-size:11px; color:var(--muted); }
   .link-passive { stroke: var(--muted); stroke-width:1.5; opacity:.5; }
-  .link-active { stroke: var(--rose); stroke-width:3; opacity:.95; }
+  .link-active { 
+    stroke: var(--rose); 
+    stroke-width:3; 
+    opacity:.95; 
+    stroke-dasharray: 8, 4;
+    animation: dash 1s linear infinite;
+  }
+  @keyframes dash {
+    to { stroke-dashoffset: -24; }
+  }
   .state-connected { fill: var(--foam); }
   .state-transferring { fill: var(--gold); }
   .state-idle { fill: var(--muted); }
@@ -44,17 +59,26 @@
   details.section > summary::-webkit-details-marker { display:none; }
   details.section[open] > summary { color:var(--foam); border-bottom:1px solid var(--glass); }
   .section-body { padding:8px; display:flex; flex-direction:column; gap:8px; }
+  
+  /* Tabbed Sidebar */
+  .tabs { display:flex; border-bottom:1px solid var(--glass); margin-bottom:10px; }
+  .tab { padding:8px 12px; cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); border-bottom:2px solid transparent; }
+  .tab.active { color:var(--pine); border-bottom:2px solid var(--pine); }
+  .tab-content { display:none; flex-direction:column; gap:10px; }
+  .tab-content.active { display:flex; }
+  
   @media (max-width:1100px){ .app{ grid-template-columns:1fr; } .panel{ max-height:45vh; } }
 </style>
 </head>
-<body>
+<body data-theme="dark">
 <nav class="topnav">
   <div style="color:var(--pine);font-weight:800;">EtherMap</div>
-  <div style="margin-left:auto;">
+  <div style="margin-left:auto; display:flex; align-items:center;">
     <a href="/" class="active">Visualization</a>
     <a href="/upload">Upload</a>
     <a href="/files">Files</a>
     <a href="/logout" id="logoutLink">Logout</a>
+    <span class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">🌓</span>
   </div>
 </nav>
 
@@ -73,6 +97,7 @@
     <div class="row">
       <button id="pause">Pause</button>
       <button id="resumeLive">Resume live</button>
+      <button id="resetTopology">Reset Topology</button>
       <button id="exportState">Export state</button>
       <label class="chip">Import <input type="file" id="importState" accept="application/json" style="display:none"></label>
       <button id="importBtn">Choose file</button>
@@ -86,59 +111,72 @@
   </div>
 
   <div class="card panel">
-    <div class="stat"><span>Nodes</span><strong id="node_count">0</strong></div>
-    <div class="stat"><span>Events</span><strong id="event_count">0</strong></div>
-    <div class="stat"><span>Total bytes</span><strong id="bytes_total">0</strong></div>
-    <div class="stat"><span>Burst(20s)</span><strong id="burst_20s">0</strong></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="status">Status</div>
+      <div class="tab" data-tab="activity">Activity</div>
+      <div class="tab" data-tab="settings">Settings</div>
+    </div>
 
-    <details class="section" open>
-      <summary>Devices (profiles)</summary>
-      <div class="section-body">
-        <div class="row">
-          <button id="refreshDevices">Refresh</button>
-          <button id="registerDevice">Register this device</button>
+    <div id="tab-status" class="tab-content active">
+      <div class="stat"><span>Nodes</span><strong id="node_count">0</strong></div>
+      <div class="stat"><span>Events</span><strong id="event_count">0</strong></div>
+      <div class="stat"><span>Total bytes</span><strong id="bytes_total">0</strong></div>
+      <div class="stat"><span>Burst(20s)</span><strong id="burst_20s">0</strong></div>
+
+      <details class="section" open>
+        <summary>Devices (profiles)</summary>
+        <div class="section-body">
+          <div class="row">
+            <button id="refreshDevices">Refresh</button>
+            <button id="registerDevice">Register this device</button>
+          </div>
+          <div id="devicesList"></div>
         </div>
-        <div id="devicesList"></div>
-      </div>
-    </details>
+      </details>
 
-    <details class="section">
-      <summary>Alerts</summary>
-      <div class="section-body">
-        <div id="alerts"></div>
-      </div>
-    </details>
-
-    <details class="section">
-      <summary>Analytics Top Talkers</summary>
-      <div class="section-body">
-        <div id="analyticsList" class="muted"></div>
-      </div>
-    </details>
-
-    <details class="section">
-      <summary>Room chat (Signaling)</summary>
-      <div class="section-body">
-        <div class="row">
-          <input id="roomInput" placeholder="room name" value="demo-room" style="flex:1">
-          <button id="joinRoom">Join</button>
-          <span class="chip" id="roomPresence">0 members</span>
+      <details class="section">
+        <summary>Analytics Top Talkers</summary>
+        <div class="section-body">
+          <div id="analyticsList" class="muted"></div>
         </div>
-        <div id="chatLog"></div>
-        <div class="row">
-          <input id="chatMsg" placeholder="message" style="flex:1">
-          <button id="sendMsg">Send</button>
-        </div>
-      </div>
-    </details>
+      </details>
+    </div>
 
-    <details class="section">
-      <summary>Event log</summary>
-      <div class="section-body">
-        <div id="log"></div>
-      </div>
-    </details>
-    <div id="ui_status" class="muted"></div>
+    <div id="tab-activity" class="tab-content">
+      <details class="section" open>
+        <summary>Alerts</summary>
+        <div class="section-body">
+          <div id="alerts"></div>
+        </div>
+      </details>
+
+      <details class="section" open>
+        <summary>Event log</summary>
+        <div class="section-body">
+          <div id="log"></div>
+        </div>
+      </details>
+    </div>
+
+    <div id="tab-settings" class="tab-content">
+      <details class="section" open>
+        <summary>Room chat (Signaling)</summary>
+        <div class="section-body">
+          <div class="row">
+            <input id="roomInput" placeholder="room name" value="demo-room" style="flex:1">
+            <button id="joinRoom">Join</button>
+            <span class="chip" id="roomPresence">0 members</span>
+          </div>
+          <div id="chatLog"></div>
+          <div class="row">
+            <input id="chatMsg" placeholder="message" style="flex:1">
+            <button id="sendMsg">Send</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div id="ui_status" class="muted" style="margin-top:auto"></div>
   </div>
 </div>
 
@@ -160,6 +198,29 @@ function setUiStatus(msg, isErr){
   const el = document.getElementById('ui_status');
   el.textContent = msg || '';
   el.style.color = isErr ? 'var(--love)' : 'var(--muted)';
+}
+
+function setupTheme(){
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.body.setAttribute('data-theme', saved);
+  document.getElementById('themeToggle').onclick = () => {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  };
+}
+
+function setupTabs(){
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => {
+    t.onclick = () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('tab-' + t.getAttribute('data-tab')).classList.add('active');
+    };
+  });
 }
 
 function apiFetch(url, opts){
@@ -225,10 +286,13 @@ function initViz(){
       .on('drag',(e,d)=>{ d.fx=e.x; d.fy=e.y; })
       .on('end',(e,d)=>{ if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
     );
-    enter.append('circle').attr('r', 11);
-    enter.append('text').attr('class','node-label').attr('dy',4).attr('text-anchor','middle');
+    enter.append('circle').attr('r', d => d.id === 'SERVER' ? 18 : 12);
+    enter.append('text').attr('class','node-icon').attr('dy',4).attr('text-anchor','middle').style('font-size', '12px');
+    enter.append('text').attr('class','node-label').attr('dy',24).attr('text-anchor','middle');
+    
     nodeSel.merge(enter).select('circle').attr('class', d => d.state === 'transferring' ? 'state-transferring' : d.state === 'error' ? 'state-error' : d.state === 'idle' ? 'state-idle' : 'state-connected');
-    nodeSel.merge(enter).select('text').text(d=>d.label || d.id);
+    nodeSel.merge(enter).select('text.node-icon').text(d => d.icon || (d.id === 'SERVER' ? '🌐' : '💻'));
+    nodeSel.merge(enter).select('text.node-label').text(d => d.label || d.id);
     nodeSel.exit().remove();
     sim.nodes(nodes).on('tick',()=>{
       linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
@@ -239,15 +303,20 @@ function initViz(){
     document.getElementById('node_count').textContent = nodes.length;
   }
 
-  function upsertNode(id, label){
+  function upsertNode(id, label, icon){
     if(!id) return null;
-    if(nodesMap.has(id)){ const n = nodesMap.get(id); if(label) n.label = label; return n; }
-    const node = {id, label: label || id, state:'connected'};
+    if(nodesMap.has(id)){ 
+      const n = nodesMap.get(id); 
+      if(label) n.label = label; 
+      if(icon) n.icon = icon;
+      return n; 
+    }
+    const node = {id, label: label || id, icon: icon, state:'connected'};
     nodes.push(node); nodesMap.set(id,node); redraw(); return node;
   }
 
-  function setNodeState(id, state, label){
-    const node = upsertNode(id, label);
+  function setNodeState(id, state, label, icon){
+    const node = upsertNode(id, label, icon);
     if(!node) return;
     node.state = state || 'connected';
     redraw();
@@ -291,8 +360,10 @@ function initViz(){
     redraw();
   }
 
-  graph = {upsertNode, setNodeState, upsertEdge, removeNode, resetGraph};
-  upsertNode('SERVER','SERVER');
+  function getNode(id){ return nodesMap.get(id); }
+
+  graph = {upsertNode, setNodeState, upsertEdge, removeNode, resetGraph, getNode};
+  upsertNode('SERVER', 'SERVER', '🌐');
 }
 initViz();
 window.addEventListener('resize', ()=>initViz());
@@ -334,13 +405,26 @@ function resetLiveView(){
   replayMode = false;
   eventsPaused = false;
   if(replayTimer){ clearInterval(replayTimer); replayTimer = null; }
-  eventHistory.length = 0;
-  const logEl = document.getElementById('log');
-  logEl.innerHTML = '';
+  
+  // Jump to live: clear local visual state and sync with server's reality
   graph.resetGraph();
-  resetDerivedState();
+  syncStateWithServer(); 
+  
   updateTimelineUI();
   document.getElementById('pause').textContent = 'Pause';
+}
+
+async function hardReset(){
+  if(!confirm("DANGER: This will wipe the server logs, all uploaded files, and reset the network state. Continue?")) return;
+  try {
+    const res = await apiFetch('/api/admin/reset', {method:'POST'});
+    if(res && res.ok){
+      resetLiveView();
+      setUiStatus("Full demo reset complete.");
+    } else {
+      setUiStatus("Reset failed: " + (res.error || "unknown"), true);
+    }
+  } catch(e){ setUiStatus("Reset error: " + e, true); }
 }
 
 function handleRules(evt){
@@ -373,22 +457,32 @@ function applyEvent(evt, record){
     addLog(t,d);
   }
   handleRules(evt);
-  if(src) graph.upsertNode(src, d.name || d.label || src);
-  if(dst) graph.upsertNode(dst, dst);
+  if(src) graph.upsertNode(src, d.name || d.label || src, d.icon);
+  if(dst) graph.upsertNode(dst, dst, dst === 'SERVER' ? '🌐' : null);
   if(t === 'put_start' || t === 'get_start'){
-    graph.setNodeState(src,'transferring',d.name || src);
+    graph.setNodeState(src,'transferring',d.name || src, d.icon);
     graph.upsertEdge(src, dst || 'SERVER', d.direction || t, true);
   } else if(t === 'put_done' || t === 'get_done'){
-    graph.setNodeState(src,'connected',d.name || src);
+    graph.setNodeState(src,'connected',d.name || src, d.icon);
     graph.upsertEdge(src, dst || 'SERVER', d.direction || t, false);
   } else if(t === 'client_disconnected'){
-    graph.setNodeState(src,'idle',d.name || src);
+    // User requirement: dispose of nodes unless they have been renamed/profiled
+    const node = graph.getNode(src);
+    const isRenamed = node && node.label && node.label !== src;
+    if(isRenamed){
+      graph.setNodeState(src,'idle',d.name || src, d.icon);
+    } else {
+      graph.removeNode(src);
+    }
   } else if(t === 'device_removed'){
     graph.removeNode(src);
   } else if(t === 'error'){
-    graph.setNodeState(src,'error',d.name || src);
+    graph.setNodeState(src,'error',d.name || src, d.icon);
   } else if(t === 'client_connected' || t === 'viewer_connected'){
-    graph.setNodeState(src,'connected',d.name || src);
+    graph.setNodeState(src,'connected',d.name || src, d.icon);
+  } else if(t === 'signaling'){
+    graph.upsertEdge(src, dst, 'signal', true);
+    setTimeout(() => graph.upsertEdge(src, dst, 'signal', false), 2000);
   }
   updateAnalyticsDevice(src, Number(d.size || 0));
   analytics.bytes += Number(d.size || 0);
@@ -491,6 +585,31 @@ async function pullAnalytics(){
   } catch(e){}
 }
 
+async function syncStateWithServer(){
+  try {
+    const data = await apiFetch('/api/state');
+    if(data && data.nodes) {
+      // Also fetch devices to get icons/names
+      const devResp = await apiFetch('/api/devices/list');
+      const devMap = new Map();
+      if(devResp && devResp.devices) {
+        devResp.devices.forEach(d => devMap.set(d.client_id, d));
+      }
+
+      data.nodes.forEach(n => {
+        const d = devMap.get(n.ip);
+        // Requirement: Only show active nodes, OR idle nodes with a custom profile
+        if(n.state === 'idle' && !d && n.ip !== 'SERVER'){
+          return; // Skip auto-disposal of idle non-renamed nodes
+        }
+        graph.setNodeState(n.ip, n.state, d ? d.name : n.ip, d ? d.icon : (n.ip === 'SERVER' ? '🌐' : '💻'));
+      });
+    }
+  } catch(e) {
+    console.error("State sync failed", e);
+  }
+}
+
 function escapeHtml(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
 function setupSidebarSections(){
@@ -534,6 +653,7 @@ document.getElementById('pause').addEventListener('click', (e)=>{
   eventsPaused = !eventsPaused;
   e.target.textContent = eventsPaused ? 'Resume' : 'Pause';
 });
+document.getElementById('resetTopology').addEventListener('click', hardReset);
 
 // Export / import
 document.getElementById('exportState').addEventListener('click', async ()=>{
@@ -614,10 +734,13 @@ document.getElementById('logoutLink').addEventListener('click', async (ev)=>{
 });
 
 (async function boot(){
+  setupTheme();
+  setupTabs();
   setupSidebarSections();
   const me = await checkAuthOrRedirect();
   if(!me) return;
   graph.resetGraph();
+  await syncStateWithServer();
   await autoRegisterDevice();
   await fetchDevices();
   await pullAnalytics();

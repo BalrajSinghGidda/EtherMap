@@ -10,10 +10,22 @@
   --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
   --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8; --gold:#f6c177; --glass:rgba(224,222,244,0.08);
 }
+[data-theme="light"] {
+  --base:#faf4ed; --surface:#fffaf6; --overlay:#f2e9e1; --glass:rgba(43,36,48,0.05);
+  --muted:#6e6a86; --subtle:#797593; --text:#575279;
+  --love:#b4637a; --gold:#ea9d34; --rose:#d7827e; --pine:#286983; --foam:#56949f;
+}
 
 html, body {
-  height:100vh; margin:0; background:var(--base);
-  font-family:Inter,system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+  height:100vh; margin:0; background:var(--base); color:var(--text);
+  font-family:Inter,system-ui,sans-serif; transition: background 0.3s, color 0.3s;
+  overflow: hidden;
+}
+
+.bg-nodes {
+  position: fixed; top:0; left:0; width:100%; height:100%; z-index:-1;
+  background: radial-gradient(circle at 70% 20%, var(--glass) 0%, transparent 40%),
+              radial-gradient(circle at 30% 80%, var(--glass) 0%, transparent 40%);
 }
 
 .center {
@@ -21,64 +33,94 @@ html, body {
 }
 
 .card {
-  width:360px; background:var(--surface); padding:28px;
-  border-radius:0; box-shadow:none;
-  border:1px solid var(--glass);
+  width:380px; background:var(--surface); padding:40px;
+  border-radius:0; border:1px solid var(--glass);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  position: relative;
 }
 
-h2 { margin:0 0 14px 0; color:var(--pine); font-size:22px; }
-label { display:block; margin-top:14px; font-size:13px; color:var(--subtle); }
-input[type=text], input[type=password] {
-  width:100%; padding:10px; margin-top:6px;
-  border-radius:0; border:1px solid var(--glass);
-  background:var(--overlay); color:var(--text); font-size:14px;
+.theme-toggle {
+  position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 18px; opacity: 0.6;
 }
+.theme-toggle:hover { opacity: 1; }
+
+.logo {
+  font-size: 32px; font-weight: 900; color: var(--rose); margin-bottom: 8px; text-align: center;
+  letter-spacing: -1px;
+}
+
+h2 { margin:0 0 24px 0; color:var(--text); font-size:18px; text-align: center; font-weight: 500; opacity: 0.8; }
+label { display:block; margin-top:16px; font-size:12px; font-weight: 700; color:var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+input[type=text], input[type=password] {
+  width:100%; padding:12px; margin-top:8px; box-sizing: border-box;
+  border-radius:0; border:1px solid var(--glass);
+  background:var(--overlay); color:var(--text); font-size:15px;
+  outline: none; transition: border-color 0.2s;
+}
+input:focus { border-color: var(--rose); }
 
 button {
-  margin-top:20px; width:100%; padding:12px;
-  background:var(--foam); color:var(--base);
-  border:1px solid var(--glass); border-radius:0; font-weight:700; cursor:pointer;
-  box-shadow:none; font-size:15px;
+  margin-top:30px; width:100%; padding:14px;
+  background:var(--rose); color:var(--base);
+  border:none; font-weight:800; cursor:pointer;
+  font-size:15px; text-transform: uppercase; letter-spacing: 1px;
+  transition: transform 0.1s, opacity 0.2s;
 }
-button:hover { background:var(--pine); color:var(--text); }
+button:hover { opacity: 0.9; }
+button:active { transform: scale(0.98); }
 
-a {
-  display:block; margin-top:14px; text-align:center;
-  font-size:13px; color:var(--pine); text-decoration:none; font-weight:600;
+.links { margin-top:24px; text-align:center; display: flex; flex-direction: column; gap: 10px; }
+.links a {
+  font-size:13px; color:var(--muted); text-decoration:none; font-weight:600; transition: color 0.2s;
 }
+.links a:hover { color: var(--pine); }
+
+#err { margin-top:20px; font-size:13px; color:var(--rose); text-align: center; min-height: 1.2em; }
 </style>
 </head>
 
-<body>
+<body data-theme="dark">
+<div class="bg-nodes"></div>
 <div class="center">
   <div class="card">
-    <h2>Create account</h2>
+    <span class="theme-toggle" id="themeToggle" title="Toggle Theme">🌓</span>
+    <div class="logo">EtherMap</div>
+    <h2>Join the network topology.</h2>
 
-    <label>Username</label>
-    <input id="username" type="text">
+    <label>New Username</label>
+    <input id="username" type="text" spellcheck="false" autocomplete="username">
 
-    <label>Password</label>
-    <input id="password" type="password">
+    <label>Secure Password</label>
+    <input id="password" type="password" autocomplete="new-password">
 
-    <button id="regBtn">Register</button>
+    <div id="err"></div>
 
-    <a href="/login">Already have an account?</a>
-    <a href="/">← Back to visualization</a>
+    <button id="regBtn">Create Identity</button>
 
-    <div id="err" style="margin-top:10px; font-size:13px; color:var(--rose); display:none;"></div>
+    <div class="links">
+      <a href="/login">Already identified? Log in</a>
+      <a href="/">← Back to monitoring</a>
+    </div>
   </div>
 </div>
 
 <script>
+function setupTheme(){
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.body.setAttribute('data-theme', saved);
+  document.getElementById('themeToggle').onclick = () => {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  };
+}
+setupTheme();
+
 function err(msg){
   const e=document.getElementById('err');
   e.textContent=msg;
-  e.style.display='block';
-}
-function clearErr(){
-  const e=document.getElementById('err');
-  e.textContent='';
-  e.style.display='none';
 }
 
 document.getElementById('regBtn').onclick = async () => {
@@ -86,10 +128,10 @@ document.getElementById('regBtn').onclick = async () => {
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
 
-  if(!u || !p) return err("Please fill all fields.");
-  clearErr();
+  if(!u || !p) return err("All fields are mandatory.");
+  err("");
   btn.disabled = true;
-  btn.textContent = "Registering…";
+  btn.textContent = "Initializing…";
 
   try{
     const r = await fetch("/api/auth/register", {
@@ -103,14 +145,14 @@ document.getElementById('regBtn').onclick = async () => {
     if(j.ok){
       location.href = "/login";
     } else {
-      err(j.error || "Registration failed.");
+      err(j.error || "Identity creation failed.");
       btn.disabled = false;
-      btn.textContent = "Register";
+      btn.textContent = "Create Identity";
     }
   } catch(e2){
-    err("Network error.");
+    err("Transmission error.");
     btn.disabled = false;
-    btn.textContent = "Register";
+    btn.textContent = "Create Identity";
   }
 };
 </script>

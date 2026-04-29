@@ -30,5 +30,46 @@
 - Fixed critical bugs in visualization cleanup and session handling.
 - Verified end-to-end demo flow.
 
+## Phase 5: Real-time Dynamics & State Sync
+- **State Synchronization:**
+    - Implemented `syncStateWithServer()` in the viewer to pull current node statuses from the `/api/state` endpoint.
+    - Fixed "Resume Live" functionality to restore active connections instead of wiping the view.
+- **Enhanced Visualization:**
+    - Added CSS dash animations for active links to visualize real-time data flow.
+    - Improved node differentiation with icons (🌐 for server, 💻/📱 for clients) and varied circle sizes.
+    - Integrated devices profiles into the visualization to show custom names and emojis.
+- **P2P Mapping:**
+    - Extended `auth_signaling.py` to log peer-to-peer signaling events.
+    - Added support in `viewer.html` to draw transient edges between peers during signaling exchange.
+
+## Phase 6: UI Polish & Backend Optimization
+- **Backend Optimization:**
+    - Refactored `events-server.py` to use an in-memory `STATE_CACHE`.
+    - Removed expensive full-log re-parsing on every event; state is now updated incrementally and saved periodically.
+    - Added `load_initial_state` to rebuild cache from log on server startup.
+- **UI Enhancements & Customization:**
+    - **Theme Toggle:** Implemented a Light/Dark mode toggle with persistence via `localStorage`.
+    - **Tabbed Sidebar:** Organized the viewer's sidebar into "Status", "Activity", and "Settings" tabs to reduce clutter and improve focus.
+    - **Responsive Fixes:** Adjusted topnav and sidebar spacing for better accessibility across different resolutions.
+
+## Phase 7: Topology Management & Admin Reset
+- **Node Lifecycle Improvements:**
+    - Implemented auto-disposal of disconnected nodes in `viewer.html` if they do not have a custom profile (un-renamed).
+    - Renamed or profiled nodes now persist in an `idle` state upon disconnection, requiring manual removal from the device list.
+    - Updated `syncStateWithServer()` to filter out inactive non-profiled nodes, preventing them from reappearing when resuming live view.
+- **Admin Reset Feature:**
+    - Added `/api/admin/reset` endpoint to `events-server.py` to trigger the full demo reset script safely.
+    - Integrated a **Reset Topology** button in the viewer UI to allow administrators to wipe the server state (logs, uploads, nodes) from the browser.
+
+## Phase 8: Universal Theming & UX Overhaul
+- **Universal Theme Support:**
+    - Extended the light/dark mode toggle to `files.html`, `upload.html`, `login.html`, and `register.html`.
+    - Standardized CSS variables across all pages for consistent color schemes.
+    - Theme preference now persists across the entire application using `localStorage`.
+- **Identity Portal Revamp:**
+    - Completely redesigned `login.html` and `register.html` with a modern "terminal" aesthetic.
+    - Added subtle background animations and improved typography for a more engaging experience.
+    - Updated navigation and layouts to be more professional and cohesive.
+
 ---
 *Last updated: April 29, 2026*

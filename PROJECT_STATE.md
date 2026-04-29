@@ -9,16 +9,17 @@
 4. **Test:** Run `pytest` to ensure core functionality is intact.
 
 ## 🧱 Architecture Overview
-- **`events-server.py`**: The primary backend. Handles SQLite auth, file uploads, SSE event streaming, and analytics.
-- **`auth_signaling.py`**: A secondary server for Socket.IO signaling and chat. Shares the same session secret.
-- **`viewer.html`**: The main visualization hub using D3.js. Connects to SSE for events and Socket.IO for chat.
-- **`state.json`**: A derived file containing the current "connected" state of all nodes, updated on every event.
+- **`events-server.py`**: The primary backend. Handles SQLite auth, file uploads, SSE event streaming, and analytics. All JSON APIs standardized under `/api/`.
+- **`auth_signaling.py`**: A secondary server for Socket.IO signaling and chat. Now logs `signaling` events for P2P visualization.
+- **`viewer.html`**: The main visualization hub using D3.js. Supports animations, icons, and real-time state sync.
 
 ## 📋 Current Tasks & Backlog
-- [ ] **Standardization:** Refactor route names in `events-server.py` to follow a consistent `/api/` pattern.
-- [ ] **Logging Optimization:** The `write_state_from_events` function currently re-reads the entire log. This should be optimized to use an incremental approach or in-memory state.
-- [ ] **UI Polish:** The sidebar in `viewer.html` is functional but crowded. Consider a tabbed interface or better layout.
-- [ ] **Connections:** Visualize persistent links between nodes based on historical communication patterns.
+- [x] **Standardization:** Refactor route names in `events-server.py` to follow a consistent `/api/` pattern.
+- [x] **Logging Optimization:** Implemented in-memory `STATE_CACHE` for incremental state updates.
+- [x] **UI Polish:** Added tabbed sidebar and light/dark mode toggle.
+- [x] **Universal Themes:** Extended theme persistence to `files.html`, `upload.html`, and auth pages.
+- [ ] **Custom Theme Implementation:** Await custom dark theme from user and create matching light theme.
+- [ ] **Enhanced Analytics:** Add more granular tracking for signaling frequency and file transfer speeds.
 
 ## 💡 Key Lessons / Pitfalls
 - **Nix vs Pip:** Always prefer Nix for dependencies in this repo.

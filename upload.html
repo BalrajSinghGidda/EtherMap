@@ -5,11 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Upload — EtherMap</title>
 <style>
-:root{--base:#191724;--overlay:#26233a;--surface:#1f1d2e;--muted:#908caa;--pine:#31748f;--foam:#9ccfd8;--rose:#ebbcba;--text:#e0def4;--glass:rgba(224,222,244,0.08)}
-html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:var(--text)}
-.topnav{position:fixed;left:0;right:0;top:0;padding:12px 48px 12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid var(--glass)}
+:root {
+  --base:#191724; --surface:#1f1d2e; --overlay:#26233a; --glass:rgba(224,222,244,0.08);
+  --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
+  --love:#eb6f92; --gold:#f6c177; --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8;
+}
+[data-theme="light"] {
+  --base:#faf4ed; --surface:#fffaf6; --overlay:#f2e9e1; --glass:rgba(43,36,48,0.05);
+  --muted:#6e6a86; --subtle:#797593; --text:#575279;
+  --love:#b4637a; --gold:#ea9d34; --rose:#d7827e; --pine:#286983; --foam:#56949f;
+}
+html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:var(--text);transition: background 0.3s, color 0.3s;}
+.topnav{position:fixed;left:0;right:0;top:0;padding:12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid var(--glass)}
 .topnav a{margin-left:14px;text-decoration:none;color:var(--pine);font-weight:700}
-.container{padding:90px 20px 40px;display:flex;justify-content:center}
+.topnav a.active { color:var(--rose); }
+.theme-toggle { margin-left:14px; cursor:pointer; font-size:18px; user-select:none; }
+
+.container{padding:120px 20px 40px;display:flex;justify-content:center}
 .card{width:720px;background:var(--surface);padding:36px;border-radius:0;border:1px solid var(--glass);box-shadow:none}
 h1{color:var(--rose);text-align:center;margin:0 0 18px 0}
 .form-row{display:flex;justify-content:center;margin:16px 0}
@@ -22,21 +34,22 @@ button:hover{background:var(--foam);color:var(--base)}
 .link{display:block;text-align:center;margin-top:14px;color:var(--pine);text-decoration:none}
 </style>
 </head>
-<body>
+<body data-theme="dark">
 <nav class="topnav">
   <div style="font-weight:700;color:var(--pine)">EtherMap</div>
-  <div style="margin-left:auto">
+  <div style="margin-left:auto; display:flex; align-items:center;">
     <a href="/">Visualization</a>
-    <a href="/upload" style="color:var(--rose)">Upload</a>
+    <a href="/upload" class="active">Upload</a>
     <a href="/files">Files</a>
     <a href="#" id="logout">Logout</a>
+    <span class="theme-toggle" id="themeToggle" title="Toggle Theme">🌓</span>
   </div>
 </nav>
 
 <main class="container">
   <div class="card">
-    <h1>Upload a File to the Network Server</h1>
-    <div style="text-align:center;color:var(--muted);">Files uploaded here will be logged as events so nodes appear in the visualization.</div>
+    <h1>Upload a File</h1>
+    <div style="text-align:center;color:var(--muted);">Files uploaded here will be logged as events for visualization.</div>
 
     <div style="display:flex;justify-content:center;margin-top:22px;">
       <input id="fileInput" type="file" />
@@ -50,12 +63,24 @@ button:hover{background:var(--foam);color:var(--base)}
     <div id="status" style="margin-top:10px;text-align:center;color:var(--muted);font-size:0.95rem;"></div>
 
     <div class="footer">
-      <a class="link" href="/">← Back to Visualization</a>
+      <a class="link" href="/">← Back to Monitoring</a>
     </div>
   </div>
 </main>
 
 <script>
+function setupTheme(){
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.body.setAttribute('data-theme', saved);
+  document.getElementById('themeToggle').onclick = () => {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  };
+}
+setupTheme();
+
 function getClientId(){ try{ let id=localStorage.getItem('client_id'); if(!id){ id = Math.random().toString(36).slice(2,10) + '-' + Date.now().toString(36).slice(-6); localStorage.setItem('client_id', id);} return id;}catch(e){return 'anon-'+Date.now();}}
 
 const uploadBtn = document.getElementById('uploadBtn');
@@ -93,7 +118,7 @@ uploadBtn.addEventListener('click', () => {
   xhr.send(form);
 });
 
-document.getElementById('logout').addEventListener('click', async (e) => { e.preventDefault(); try{ await fetch('/logout', {method:'POST', credentials:'include'}); }catch{}; window.location.href='/login';});
+document.getElementById('logout').addEventListener('click', async (e) => { e.preventDefault(); try{ await fetch('/api/auth/logout', {method:'POST', credentials:'include'}); }catch{}; window.location.href='/login';});
 </script>
 </body>
 </html>
