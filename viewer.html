@@ -129,6 +129,7 @@
       <button id="pause">Pause</button>
       <button id="resumeLive">Resume live</button>
       <button id="resetTopology">Reset Topology</button>
+      <button id="centerGraph"><i class="ph ph-arrows-in"></i> Center</button>
       <button id="exportState">Export state</button>
       <label class="chip">Import <input type="file" id="importState" accept="application/json" style="display:none"></label>
       <button id="importBtn">Choose file</button>
@@ -232,6 +233,11 @@ const analytics = { bytes: 0, byDevice: new Map(), burst20: 0 };
 const eventRateData = []; 
 const MAX_SPARK_POINTS = 30;
 
+function parse_ts(ts){
+  if(!ts) return Date.now() / 1000;
+  return new Date(ts).getTime() / 1000;
+}
+
 function updateSparkline(){
   const container = document.getElementById('sparkline');
   if(!container) return;
@@ -246,7 +252,7 @@ function updateSparkline(){
     const tEnd = now - (i * bucketSize);
     const tStart = tEnd - bucketSize;
     const count = eventHistory.filter(e => {
-      const ts = new Date(e.ts).getTime();
+      const ts = parse_ts(e.ts) * 1000;
       return ts >= tStart && ts < tEnd;
     }).length;
     buckets.unshift(count);
@@ -324,14 +330,28 @@ function updateTimelineUI(){
 
 const svgEl = document.getElementById('viz');
 let graph = null;
+let zoomBehavior = null;
+
 function initViz(){
   const rect = svgEl.getBoundingClientRect();
   const width = Math.max(600, rect.width);
   const height = Math.max(360, rect.height);
   svgEl.innerHTML = '';
   const svg = d3.select(svgEl).attr('viewBox', `0 0 ${width} ${height}`);
-  const linkG = svg.append('g');
-  const nodeG = svg.append('g');
+  
+  // Create a container group for all elements to enable zoom/pan
+  const container = svg.append('g').attr('class', 'zoom-container');
+  
+  zoomBehavior = d3.zoom()
+    .scaleExtent([0.1, 8])
+    .on('zoom', (event) => {
+      container.attr('transform', event.transform);
+    });
+  
+  svg.call(zoomBehavior);
+
+  const linkG = container.append('g');
+  const nodeG = container.append('g');
   const links = [];
   const nodes = [];
   const nodesMap = new Map();
@@ -466,9 +486,17 @@ function initViz(){
     redraw();
   }
 
+  function centerGraph(){
+    d3.select(svgEl).transition().duration(750).call(
+      zoomBehavior.transform,
+      d3.zoomIdentity
+    );
+    sim.alpha(0.3).restart();
+  }
+
   function getNode(id){ return nodesMap.get(id); }
 
-  graph = {upsertNode, setNodeState, upsertEdge, removeNode, resetGraph, getNode};
+  graph = {upsertNode, setNodeState, upsertEdge, removeNode, resetGraph, getNode, centerGraph};
   upsertNode('SERVER', 'SERVER', '🌐');
 }
 initViz();
@@ -591,8 +619,9 @@ function applyEvent(evt, record){
     graph.removeNode(src);
   } else if(t === 'error'){
     graph.setNodeState(src,'error',d.name || src, d.icon);
-  } else if(t === 'client_connected' || t === 'viewer_connected'){
+  } else if(t === 'client_connected' || t === 'viewer_connected' || t === 'device_updated'){
     graph.setNodeState(src,'connected',d.name || src, d.icon);
+    if(t === 'device_updated') fetchDevices(); // Refresh sidebar too
   } else if(t === 'signaling'){
     graph.upsertEdge(src, dst, 'signal', true);
     setTimeout(() => graph.upsertEdge(src, dst, 'signal', false), 2000);
@@ -651,6 +680,8 @@ function renderDevices(devs){
       try{
         await apiFetch('/api/devices/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:d.client_id,name,device_type:deviceType,icon})});
         setUiStatus('Device profile updated.');
+        // Update local graph immediately
+        graph.upsertNode(d.client_id, name, icon);
         fetchDevices();
       } catch(e){ setUiStatus('Could not update profile.', true); }
     };
@@ -768,6 +799,7 @@ document.getElementById('pause').addEventListener('click', (e)=>{
   e.target.textContent = eventsPaused ? 'Resume' : 'Pause';
 });
 document.getElementById('resetTopology').addEventListener('click', hardReset);
+document.getElementById('centerGraph').addEventListener('click', () => graph.centerGraph());
 
 // Export / import
 document.getElementById('exportState').addEventListener('click', async ()=>{

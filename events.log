@@ -1,0 +1,35 @@
+{"ts": "2026-04-29T08:58:19", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:58:19", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "name": "Linux armv81", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-29T08:58:20", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "src": "w82316-jtoiqi", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:58:20", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "src": "kua59p-jq2j7t", "dst": "SERVER", "name": "Linux armv81", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-29T08:58:27", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:58:29", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "src": "2lhqne-jq0vf0", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:58:40", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "name": "anshu", "device_type": "client", "icon": "<i class"}}
+{"ts": "2026-04-29T08:58:56", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "src": "w82316-jtoiqi", "dst": "SERVER", "name": "anshu ", "device_type": "client", "icon": "<i class=\"ph ph-desktop\"></i>"}}
+{"ts": "2026-04-29T08:58:56", "type": "device_updated", "detail": {"ip": "w82316-jtoiqi", "name": "anshu", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:59:04", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:59:05", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "src": "2lhqne-jq0vf0", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:59:29", "type": "device_updated", "detail": {"ip": "727py2-j39iyz", "name": "dellllll", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-29T08:59:35", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:59:36", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "src": "kua59p-jq2j7t", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T08:59:48", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "name": "dellll", "device_type": "client", "icon": "<i class"}}
+{"ts": "2026-04-29T08:59:48", "type": "client_connected", "detail": {"ip": "727py2-j39iyz", "src": "727py2-j39iyz", "dst": "SERVER", "name": "dellll", "device_type": "client", "icon": "<i class=\"ph ph-desktop\"></i>"}}
+{"ts": "2026-04-29T09:00:12", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:00:14", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "src": "2lhqne-jq0vf0", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:00:15", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "name": "Linux armv81", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-29T09:00:16", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "src": "kua59p-jq2j7t", "dst": "SERVER", "name": "Linux armv81", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-29T09:00:25", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:00:26", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "src": "w82316-jtoiqi", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:00:30", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:00:30", "type": "client_connected", "detail": {"ip": "2lhqne-jq0vf0", "src": "2lhqne-jq0vf0", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:00:42", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "name": "Soni", "device_type": "client", "icon": "<i class"}}
+{"ts": "2026-04-29T09:00:43", "type": "client_connected", "detail": {"ip": "kua59p-jq2j7t", "src": "kua59p-jq2j7t", "dst": "SERVER", "name": "Soni", "device_type": "client", "icon": "<i class=\"ph ph-desktop\"></i>"}}
+{"ts": "2026-04-29T09:01:06", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "name": "Anshu", "device_type": "client", "icon": "<i class"}}
+{"ts": "2026-04-29T09:01:07", "type": "client_connected", "detail": {"ip": "w82316-jtoiqi", "src": "w82316-jtoiqi", "dst": "SERVER", "name": "Anshu ", "device_type": "client", "icon": "<i class=\"ph ph-desktop\"></i>"}}
+{"ts": "2026-04-29T09:01:12", "type": "device_updated", "detail": {"ip": "w82316-jtoiqi", "name": "Anshu", "device_type": "client", "icon": "<i class"}}
+{"ts": "2026-04-29T09:01:14", "type": "client_connected", "detail": {"ip": "tiit8j-jq3lal", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:01:15", "type": "client_connected", "detail": {"ip": "tiit8j-jq3lal", "src": "tiit8j-jq3lal", "dst": "SERVER", "name": "Linux armv81", "device_type": "mobile", "icon": "\ud83d\udcf1"}}
+{"ts": "2026-04-29T09:01:32", "type": "client_connected", "detail": {"ip": "tiit8j-jq3lal", "name": "Linux armv81", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-29T09:01:32", "type": "client_connected", "detail": {"ip": "tiit8j-jq3lal", "src": "tiit8j-jq3lal", "dst": "SERVER", "name": "Linux armv81", "device_type": "client", "icon": "\ud83d\udcbb"}}
+{"ts": "2026-04-29T09:01:43", "type": "client_connected", "detail": {"ip": "tiit8j-jq3lal", "name": "Radha", "device_type": "client", "icon": "<i class"}}
+{"ts": "2026-04-29T09:01:44", "type": "client_connected", "detail": {"ip": "tiit8j-jq3lal", "src": "tiit8j-jq3lal", "dst": "SERVER", "name": "Radha ", "device_type": "client", "icon": "<i class=\"ph ph-desktop\"></i>"}}

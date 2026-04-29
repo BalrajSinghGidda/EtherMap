@@ -17,13 +17,11 @@
 - [x] **Standardization:** Refactor route names in `events-server.py` to follow a consistent `/api/` pattern.
 - [x] **Logging Optimization:** Implemented in-memory `STATE_CACHE` for incremental state updates.
 - [x] **UI Polish:** Added tabbed sidebar and light/dark mode toggle.
-- [x] **Universal Themes:** Extended theme persistence to `files.html`, `upload.html`, and auth pages.
-- [x] **Custom Theme Implementation:** Applied the Omarchy color palette and matching light theme.
-- [x] **Icon Library:** Integrated Phosphor Icons across the entire app.
-- [x] **Advanced Feedback:** Added D3 sparklines and password strength meters.
-- [x] **Interactive Topology:** Implemented hover metadata cards and floating link labels.
-- [x] **Activity Filtering:** Added search functionality to the live event log.
+- [x] **Universal Themes:** Extended theme persistence to all pages.
+- [x] **Advanced Feedback:** Added D3 sparklines, zoom controls, and metadata cards.
+- [x] **Real-time Sync:** Global broadcasting of device name and icon updates.
 - [x] **Mobile Responsive:** Full overhaul of layouts and navigation for mobile devices.
+- [x] **Stability:** Fixed critical JS crashes and backend utility inconsistencies.
 - [x] **Project Documentation:** Generated a full project report in `report.md`.
 
 ## 💡 Key Lessons / Pitfalls

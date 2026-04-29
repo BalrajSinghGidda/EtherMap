@@ -110,5 +110,24 @@
     - Fixed overflow issues that caused elements to be cut off on small viewports.
     - Optimized top navigation spacing and font sizes for readability on phones.
 
+## Phase 12: Graph Interactivity & Sync Consistency
+- **Visual Synchronization Fixes:**
+    - Updated `events-server.py` to emit a `device_updated` event when a user changes their device profile.
+    - Modified `viewer.html` to update the local graph node immediately upon editing a profile, ensuring name and icon changes reflect instantly.
+- **Advanced Graph Navigation:**
+    - Implemented **Zoom and Pan** functionality using `d3.zoom()`, allowing users to navigate complex topologies easily.
+    - Added a **Center View** button to reset the zoom transform and re-center the network simulation.
+
+## Phase 13: Critical Recovery & Advanced Interaction
+- **Stability Restoration:**
+    - Fixed a critical JavaScript crash by restoring the missing `parse_ts` function in `viewer.html`.
+    - Resolved a `NameError` in the backend state import logic and unified duplicated utility functions.
+    - Cleaned up the event logging API to prevent malformed data from triggering 400 errors.
+- **Global Device Synchronization:**
+    - Implemented a `device_updated` event that broadcasts profile changes (names/icons) to all connected clients in real-time.
+    - Ensured the local graph and sidebar refresh immediately upon any device metadata update.
+- **Visual Navigation:**
+    - Finalized **Zoom, Pan, and Center** controls, ensuring smooth transitions even during high-velocity network simulations.
+
 ---
 *Last updated: April 29, 2026*

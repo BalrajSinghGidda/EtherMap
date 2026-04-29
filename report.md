@@ -18,6 +18,7 @@ EtherMap is a real-time network topology visualization and monitoring suite desi
 ### 2. **Rich Interactivity & UX**
 - **Animated Data Flow:** Pulsing dash animations on active links visually represent data transfers.
 - **Node Metadata Cards:** Hovering over nodes reveals detailed device profiles (OS, Type, IDs).
+- **Navigation Tools:** Integrated **Zoom & Pan** support and a **Center View** button for effortless exploration of large networks.
 - **Timeline Replay:** A functional VCR-style control to replay historical network events and trace past activity.
 - **Tabbed Dashboard:** A clean, organized sidebar for Status, Activity, and Settings.
 

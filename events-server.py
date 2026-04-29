@@ -472,6 +472,17 @@ def api_devices_profile():
         (name, device_type, icon, int(time.time()), uid, client_id),
     )
     db.commit()
+    append_event(
+        {
+            "type": "device_updated",
+            "detail": {
+                "ip": client_id,
+                "name": name or client_id,
+                "device_type": device_type,
+                "icon": icon,
+            },
+        }
+    )
     return jsonify({"ok": True})
 
 
@@ -761,7 +772,10 @@ def import_state_api():
         for evt in events[-5000:]:
             if isinstance(evt, dict):
                 f.write(json.dumps(evt) + "\n")
-    write_state_from_events()
+    # Restore state cache from new events
+    STATE_CACHE["nodes"] = {}
+    load_initial_state()
+    
     devices = payload.get("devices") or []
     uid = session["user_id"]
     db = get_db()
@@ -876,24 +890,8 @@ def serve_temp(token):
     except Exception as e:
         print("serve_temp error:", e)
         abort(500)
-def read_recent_events(limit=500):
-    if not os.path.exists(EVENTS_FILE):
-        return []
-    events = []
-    with open(EVENTS_FILE, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                events.append(json.loads(line))
-            except Exception:
-                continue
-    return events[-limit:] if limit > 0 else events
 
 
-def parse_ts(ts_text):
-    ...
 # ---------- Run server (init DB inside app context) ----------
 if __name__ == "__main__":
     # create DB schema inside app context
