@@ -34,10 +34,10 @@ html, body {
 }
 
 .card {
-  width:380px; background:var(--surface); padding:40px;
+  width:100%; max-width:380px; background:var(--surface); padding:40px;
   border-radius:0; border:1px solid var(--glass);
   box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  position: relative;
+  position: relative; box-sizing: border-box;
 }
 
 .theme-toggle {

@@ -23,6 +23,7 @@
 - [x] **Advanced Feedback:** Added D3 sparklines and password strength meters.
 - [x] **Interactive Topology:** Implemented hover metadata cards and floating link labels.
 - [x] **Activity Filtering:** Added search functionality to the live event log.
+- [x] **Mobile Responsive:** Full overhaul of layouts and navigation for mobile devices.
 - [x] **Project Documentation:** Generated a full project report in `report.md`.
 
 ## 💡 Key Lessons / Pitfalls

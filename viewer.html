@@ -18,17 +18,20 @@
     --muted:#555c65; --subtle:#7a8a7d; --text:#0a1220;
     --love:#e06b58; --gold:#b8b5a2; --rose:#d4786b; --pine:#7a8a7d; --foam:#555c65;
   }
-  html, body { height:100vh; margin:0; overflow:hidden; }
-  body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); transition: background 0.3s, color 0.3s; }
-  .topnav { position:fixed; top:0; left:0; right:0; padding:12px 20px; display:flex; align-items:center; background:var(--overlay); border-bottom:1px solid var(--glass); z-index:10; }
-  .topnav a { text-decoration:none; color:var(--pine); font-weight:700; margin-left:14px; }
+  html, body { min-height:100%; margin:0; }
+  body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); transition: background 0.3s, color 0.3s; overflow-x: hidden; }
+  .topnav { position:fixed; top:0; left:0; right:0; padding:10px 15px; display:flex; align-items:center; background:var(--overlay); border-bottom:1px solid var(--glass); z-index:100; flex-wrap: wrap; }
+  .topnav-brand { color:var(--pine); font-weight:800; font-size: 1.1rem; }
+  .topnav-links { margin-left:auto; display:flex; align-items:center; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+  .topnav a { text-decoration:none; color:var(--pine); font-weight:700; font-size: 0.85rem; }
   .topnav a.active { color:var(--rose); }
-  .theme-toggle { margin-left:14px; cursor:pointer; font-size:18px; user-select:none; }
-  .app { display:grid; grid-template-columns: 1fr 420px; gap:12px; height:calc(100vh - 72px); padding:86px 12px 12px; box-sizing:border-box; }
+  .theme-toggle { cursor:pointer; font-size:18px; user-select:none; color: var(--subtle); }
+
+  .app { display:grid; grid-template-columns: 1fr 420px; gap:12px; min-height:100vh; padding:80px 12px 12px; box-sizing:border-box; }
   .card { background:var(--surface); border:1px solid var(--glass); border-radius:0; box-shadow:none; }
   .canvas { display:flex; flex-direction:column; padding:12px; }
   .panel { padding:12px; overflow:auto; display:flex; flex-direction:column; gap:10px; }
-  #viz { width:100%; height:100%; min-height:360px; }
+  #viz { width:100%; height:100%; min-height:450px; background: var(--base); }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .stat { display:flex; justify-content:space-between; padding:8px; border-radius:0; background:var(--overlay); border:1px solid var(--glass); font-size:13px; }
   .muted { color:var(--muted); font-size:12px; }
@@ -82,13 +85,24 @@
   .tab-content { display:none; flex-direction:column; gap:10px; }
   .tab-content.active { display:flex; }
   
-  @media (max-width:1100px){ .app{ grid-template-columns:1fr; } .panel{ max-height:45vh; } }
+  @media (max-width:1100px){ 
+    .app { grid-template-columns: 1fr; padding-top: 100px; } 
+    .panel { max-height:none; } 
+    .canvas { min-height: 500px; }
+  }
+  @media (max-width: 600px) {
+    .topnav { padding: 8px 12px; }
+    .topnav-links { width: 100%; justify-content: center; margin-top: 5px; gap: 8px; }
+    .app { padding: 130px 8px 12px; }
+    .row { justify-content: center; }
+    .card { padding: 8px; }
+  }
 </style>
 </head>
 <body data-theme="dark">
 <nav class="topnav">
-  <div style="color:var(--pine);font-weight:800;">EtherMap</div>
-  <div style="margin-left:auto; display:flex; align-items:center;">
+  <div class="topnav-brand">EtherMap</div>
+  <div class="topnav-links">
     <a href="/" class="active">Visualization</a>
     <a href="/upload">Upload</a>
     <a href="/files">Files</a>

@@ -29,6 +29,7 @@ EtherMap is a real-time network topology visualization and monitoring suite desi
 ### 4. **Aesthetics & Personalization**
 - **Omarchy Theme:** A custom Midnight Blue & Soft White color palette with full light/dark mode support.
 - **Iconography:** Integration of the Phosphor Icon library for a modern, sharp UI.
+- **Mobile First:** Fully responsive design across all pages, ensuring the dashboard is accessible on phones, tablets, and desktops.
 - **Custom Identities:** Users can register devices with custom names, types, and icons.
 
 ## 📈 Analytics & Feedback

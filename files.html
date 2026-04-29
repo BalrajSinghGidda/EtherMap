@@ -17,13 +17,15 @@
   --love:#e06b58; --gold:#b8b5a2; --rose:#d4786b; --pine:#7a8a7d; --foam:#555c65;
 }
 html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:var(--text);transition: background 0.3s, color 0.3s;}
-.topnav{position:fixed;left:0;right:0;top:0;padding:12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid var(--glass)}
-.topnav a{margin-left:14px;text-decoration:none;color:var(--pine);font-weight:700; display:flex; align-items:center; gap:6px;}
-.topnav a.active { color:var(--rose); }
-.theme-toggle { margin-left:14px; cursor:pointer; font-size:18px; user-select:none; color:var(--subtle); }
+  .topnav { position:fixed; left:0; right:0; top:0; padding:10px 15px; background:var(--overlay); display:flex; align-items:center; z-index:100; border-bottom:1px solid var(--glass); flex-wrap: wrap; }
+  .topnav-brand { color:var(--pine); font-weight:800; font-size: 1.1rem; }
+  .topnav-links { margin-left:auto; display:flex; align-items:center; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+  .topnav a { text-decoration:none; color:var(--pine); font-weight:700; font-size: 0.85rem; display:flex; align-items:center; gap:6px;}
+  .topnav a.active { color:var(--rose); }
+  .theme-toggle { cursor:pointer; font-size:18px; user-select:none; color:var(--subtle); }
 
-.container{padding:120px 20px 40px;display:flex;justify-content:center}
-.card{width:900px;background:var(--surface);padding:24px;border-radius:0;border:1px solid var(--glass);box-shadow:none}
+  .container{padding:100px 12px 40px;display:flex;justify-content:center}
+  .card{width:100%; max-width:900px;background:var(--surface);padding:24px;border-radius:0;border:1px solid var(--glass);box-shadow:none; box-sizing: border-box;}
 h1{color:var(--pine);text-align:left;margin:0 0 14px 0; display:flex; align-items:center; gap:10px;}
 .table{margin-top:12px;border-radius:0;overflow:hidden;background:var(--overlay);border:1px solid var(--glass)}
 .row { display:flex; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--glass); align-items:center; }
@@ -32,7 +34,7 @@ h1{color:var(--pine);text-align:left;margin:0 0 14px 0; display:flex; align-item
 .filename a { color:var(--foam); text-decoration:none; }
 .filename a:hover { text-decoration:underline; }
 .meta { width:180px; text-align:right; color:var(--muted); font-size:0.9rem; }
-.actions { width:380px; text-align:right; display:flex; gap:6px; justify-content:flex-end; }
+  .actions { width:auto; text-align:right; display:flex; gap:6px; justify-content:flex-end; flex-wrap: wrap; }
 .btn { display:inline-flex; align-items:center; gap:6px; background:var(--pine); color:var(--text); border:none; padding:8px 10px; border-radius:0; cursor:pointer; text-decoration:none; font-size: 0.85rem; font-weight: 700;}
 .btn:hover { background:var(--foam); color:var(--base); }
 .btn-alt { background: var(--overlay); border: 1px solid var(--glass); }
@@ -40,12 +42,21 @@ h1{color:var(--pine);text-align:left;margin:0 0 14px 0; display:flex; align-item
 .btn-danger:hover { background: var(--love); color: var(--text); }
 .small { color:var(--muted); font-size:0.9rem; }
 .footer { margin-top:18px; text-align:center; }
+  @media (max-width: 600px) {
+    .topnav { padding: 8px 12px; }
+    .topnav-links { width: 100%; justify-content: center; margin-top: 5px; }
+    .container { padding-top: 130px; }
+    .row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .meta { text-align: left; width: 100%; }
+    .actions { width: 100%; justify-content: flex-start; }
+    .card { padding: 16px; }
+  }
 </style>
 </head>
 <body data-theme="dark">
 <nav class="topnav">
-  <div style="font-weight:700;color:var(--pine)">EtherMap</div>
-  <div style="margin-left:auto; display:flex; align-items:center;">
+  <div class="topnav-brand">EtherMap</div>
+  <div class="topnav-links">
     <a href="/"><i class="ph ph-graph"></i> Visualization</a>
     <a href="/upload"><i class="ph ph-upload-simple"></i> Upload</a>
     <a href="/files" class="active"><i class="ph ph-folder"></i> Files</a>
