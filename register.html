@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <title>Register — EtherMap</title>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root {
-  --base:#191724; --surface:#1f1d2e; --overlay:#26233a;
-  --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
-  --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8; --gold:#f6c177; --glass:rgba(224,222,244,0.08);
+  --base:#0a1220; --surface:#131b2b; --overlay:#1c2436; --glass:rgba(240,242,245,0.08);
+  --muted:#555c65; --subtle:#b8b8b6; --text:#f0f2f5;
+  --love:#e06b58; --gold:#b8b5a2; --rose:#e48b7a; --pine:#889889; --foam:#d0cac7;
 }
 [data-theme="light"] {
-  --base:#faf4ed; --surface:#fffaf6; --overlay:#f2e9e1; --glass:rgba(43,36,48,0.05);
-  --muted:#6e6a86; --subtle:#797593; --text:#575279;
-  --love:#b4637a; --gold:#ea9d34; --rose:#d7827e; --pine:#286983; --foam:#56949f;
+  --base:#f0f2f5; --surface:#ffffff; --overlay:#e2e4e9; --glass:rgba(10,18,32,0.05);
+  --muted:#555c65; --subtle:#7a8a7d; --text:#0a1220;
+  --love:#e06b58; --gold:#b8b5a2; --rose:#d4786b; --pine:#7a8a7d; --foam:#555c65;
 }
 
 html, body {
@@ -40,9 +41,9 @@ html, body {
 }
 
 .theme-toggle {
-  position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 18px; opacity: 0.6;
+  position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 18px; opacity: 0.6; color: var(--subtle);
 }
-.theme-toggle:hover { opacity: 1; }
+.theme-toggle:hover { opacity: 1; color: var(--text); }
 
 .logo {
   font-size: 32px; font-weight: 900; color: var(--rose); margin-bottom: 8px; text-align: center;
@@ -50,7 +51,7 @@ html, body {
 }
 
 h2 { margin:0 0 24px 0; color:var(--text); font-size:18px; text-align: center; font-weight: 500; opacity: 0.8; }
-label { display:block; margin-top:16px; font-size:12px; font-weight: 700; color:var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+label { display:block; margin-top:16px; font-size:11px; font-weight: 700; color:var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 
 input[type=text], input[type=password] {
   width:100%; padding:12px; margin-top:8px; box-sizing: border-box;
@@ -59,6 +60,13 @@ input[type=text], input[type=password] {
   outline: none; transition: border-color 0.2s;
 }
 input:focus { border-color: var(--rose); }
+
+.strength-meter {
+  height: 4px; background: var(--glass); margin-top: 8px; width: 100%;
+}
+.strength-bar {
+  height: 100%; width: 0%; transition: width 0.3s, background 0.3s;
+}
 
 button {
   margin-top:30px; width:100%; padding:14px;
@@ -89,10 +97,17 @@ button:active { transform: scale(0.98); }
     <h2>Join the network topology.</h2>
 
     <label>New Username</label>
-    <input id="username" type="text" spellcheck="false" autocomplete="username">
+    <div style="position:relative">
+      <i class="ph-bold ph-user" style="position:absolute; left:12px; top:18px; color:var(--muted)"></i>
+      <input id="username" type="text" style="padding-left:38px" spellcheck="false" autocomplete="username">
+    </div>
 
     <label>Secure Password</label>
-    <input id="password" type="password" autocomplete="new-password">
+    <div style="position:relative">
+      <i class="ph-bold ph-lock-key" style="position:absolute; left:12px; top:18px; color:var(--muted)"></i>
+      <input id="password" type="password" style="padding-left:38px" autocomplete="new-password">
+    </div>
+    <div class="strength-meter"><div id="strengthBar" class="strength-bar"></div></div>
 
     <div id="err"></div>
 
@@ -117,6 +132,22 @@ function setupTheme(){
   };
 }
 setupTheme();
+
+const passInput = document.getElementById('password');
+const strengthBar = document.getElementById('strengthBar');
+passInput.oninput = () => {
+  const v = passInput.value;
+  let score = 0;
+  if(v.length > 5) score++;
+  if(/[A-Z]/.test(v)) score++;
+  if(/[0-9]/.test(v)) score++;
+  if(/[^A-Za-z0-9]/.test(v)) score++;
+  
+  const width = (score / 4) * 100;
+  const colors = ['var(--love)', 'var(--gold)', 'var(--pine)', 'var(--foam)'];
+  strengthBar.style.width = width + '%';
+  strengthBar.style.background = colors[score-1] || 'var(--love)';
+};
 
 function err(msg){
   const e=document.getElementById('err');

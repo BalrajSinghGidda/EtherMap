@@ -71,5 +71,19 @@
     - Added subtle background animations and improved typography for a more engaging experience.
     - Updated navigation and layouts to be more professional and cohesive.
 
+## Phase 9: Omarchy Theme & Advanced UI Components
+- **Custom Theming:**
+    - Implemented a new custom "Omarchy" color palette (Midnight Blue & Soft White) across all pages.
+    - Created a matching light theme with inverted tones for a consistent experience.
+- **Visual Language & Icons:**
+    - Migrated from standard emojis to the **Phosphor Icon** library for all UI elements (topnav, buttons, sidebar).
+    - Standardized icons across `viewer.html`, `upload.html`, and `files.html`.
+- **Advanced Dashboard Features:**
+    - **Real-time Sparkline:** Added a D3.js-powered event frequency chart in the viewer's Status tab.
+    - **Password Strength Meter:** Implemented real-time security feedback on the registration page with color-coded strength bars.
+- **UX Refinements:**
+    - Overhauled `login.html` and `register.html` with thematic iconography and better input styling.
+    - Improved button feedback with scale transforms and opacity transitions.
+
 ---
 *Last updated: April 29, 2026*

@@ -5,17 +5,18 @@
 <title>EtherMap — Live Viewer</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
   :root {
-    --base:#191724; --surface:#1f1d2e; --overlay:#26233a; --glass:rgba(224,222,244,0.08);
-    --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
-    --love:#eb6f92; --gold:#f6c177; --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8;
+    --base:#0a1220; --surface:#131b2b; --overlay:#1c2436; --glass:rgba(240,242,245,0.08);
+    --muted:#555c65; --subtle:#b8b8b6; --text:#f0f2f5;
+    --love:#e06b58; --gold:#b8b5a2; --rose:#e48b7a; --pine:#889889; --foam:#d0cac7;
   }
   [data-theme="light"] {
-    --base:#faf4ed; --surface:#fffaf6; --overlay:#f2e9e1; --glass:rgba(43,36,48,0.05);
-    --muted:#6e6a86; --subtle:#797593; --text:#575279;
-    --love:#b4637a; --gold:#ea9d34; --rose:#d7827e; --pine:#286983; --foam:#56949f;
+    --base:#f0f2f5; --surface:#ffffff; --overlay:#e2e4e9; --glass:rgba(10,18,32,0.05);
+    --muted:#555c65; --subtle:#7a8a7d; --text:#0a1220;
+    --love:#e06b58; --gold:#b8b5a2; --rose:#d4786b; --pine:#7a8a7d; --foam:#555c65;
   }
   html, body { height:100vh; margin:0; overflow:hidden; }
   body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); transition: background 0.3s, color 0.3s; }
@@ -118,24 +119,25 @@
     </div>
 
     <div id="tab-status" class="tab-content active">
-      <div class="stat"><span>Nodes</span><strong id="node_count">0</strong></div>
-      <div class="stat"><span>Events</span><strong id="event_count">0</strong></div>
-      <div class="stat"><span>Total bytes</span><strong id="bytes_total">0</strong></div>
-      <div class="stat"><span>Burst(20s)</span><strong id="burst_20s">0</strong></div>
+      <div id="sparkline" style="width:100%; height:60px; margin-bottom:14px; border-bottom: 1px solid var(--glass);"></div>
+      <div class="stat"><span><i class="ph-bold ph-nodes"></i> Nodes</span><strong id="node_count">0</strong></div>
+      <div class="stat"><span><i class="ph-bold ph-activity"></i> Events</span><strong id="event_count">0</strong></div>
+      <div class="stat"><span><i class="ph-bold ph-hard-drive"></i> Total bytes</span><strong id="bytes_total">0</strong></div>
+      <div class="stat"><span><i class="ph-bold ph-lightning"></i> Burst(20s)</span><strong id="burst_20s">0</strong></div>
 
       <details class="section" open>
-        <summary>Devices (profiles)</summary>
+        <summary><i class="ph-bold ph-devices"></i> Devices (profiles)</summary>
         <div class="section-body">
           <div class="row">
-            <button id="refreshDevices">Refresh</button>
-            <button id="registerDevice">Register this device</button>
+            <button id="refreshDevices"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
+            <button id="registerDevice"><i class="ph-bold ph-plus-circle"></i> Register this device</button>
           </div>
           <div id="devicesList"></div>
         </div>
       </details>
 
       <details class="section">
-        <summary>Analytics Top Talkers</summary>
+        <summary><i class="ph-bold ph-chart-bar"></i> Analytics Top Talkers</summary>
         <div class="section-body">
           <div id="analyticsList" class="muted"></div>
         </div>
@@ -144,14 +146,14 @@
 
     <div id="tab-activity" class="tab-content">
       <details class="section" open>
-        <summary>Alerts</summary>
+        <summary><i class="ph-bold ph-bell-ringing"></i> Alerts</summary>
         <div class="section-body">
           <div id="alerts"></div>
         </div>
       </details>
 
       <details class="section" open>
-        <summary>Event log</summary>
+        <summary><i class="ph-bold ph-terminal-window"></i> Event log</summary>
         <div class="section-body">
           <div id="log"></div>
         </div>
@@ -160,7 +162,7 @@
 
     <div id="tab-settings" class="tab-content">
       <details class="section" open>
-        <summary>Room chat (Signaling)</summary>
+        <summary><i class="ph-bold ph-chats"></i> Room chat (Signaling)</summary>
         <div class="section-body">
           <div class="row">
             <input id="roomInput" placeholder="room name" value="demo-room" style="flex:1">
@@ -170,7 +172,7 @@
           <div id="chatLog"></div>
           <div class="row">
             <input id="chatMsg" placeholder="message" style="flex:1">
-            <button id="sendMsg">Send</button>
+            <button id="sendMsg"><i class="ph-bold ph-paper-plane-right"></i> Send</button>
           </div>
         </div>
       </details>
@@ -193,6 +195,40 @@ const recentEventTs = [];
 const authFailRecent = {};
 const alerts = [];
 const analytics = { bytes: 0, byDevice: new Map(), burst20: 0 };
+const eventRateData = []; 
+const MAX_SPARK_POINTS = 30;
+
+function updateSparkline(){
+  const container = document.getElementById('sparkline');
+  if(!container) return;
+  const rect = container.getBoundingClientRect();
+  const width = rect.width;
+  const height = rect.height;
+  
+  const now = Date.now();
+  const bucketSize = 2000;
+  const buckets = [];
+  for(let i=0; i<MAX_SPARK_POINTS; i++){
+    const tEnd = now - (i * bucketSize);
+    const tStart = tEnd - bucketSize;
+    const count = eventHistory.filter(e => {
+      const ts = new Date(e.ts).getTime();
+      return ts >= tStart && ts < tEnd;
+    }).length;
+    buckets.unshift(count);
+  }
+
+  const svg = d3.select('#sparkline').selectAll('svg').data([buckets]);
+  const svgEnter = svg.enter().append('svg').attr('width', width).attr('height', height).style('display','block');
+  const chart = svg.merge(svgEnter);
+  
+  const x = d3.scaleLinear().domain([0, MAX_SPARK_POINTS-1]).range([0, width]);
+  const y = d3.scaleLinear().domain([0, d3.max(buckets) || 5]).range([height, 4]);
+  const line = d3.line().x((d,i) => x(i)).y(d => y(d)).curve(d3.curveBasis);
+
+  chart.selectAll('path').data([buckets]).join('path')
+    .attr('d', line).attr('fill', 'none').attr('stroke', 'var(--pine)').attr('stroke-width', 2);
+}
 
 function setUiStatus(msg, isErr){
   const el = document.getElementById('ui_status');
@@ -746,6 +782,7 @@ document.getElementById('logoutLink').addEventListener('click', async (ev)=>{
   await pullAnalytics();
   setInterval(fetchDevices, 12000);
   setInterval(pullAnalytics, 8000);
+  setInterval(updateSparkline, 2000);
   setUiStatus(`Signed in as ${me.username}.`);
 })();
 </script>

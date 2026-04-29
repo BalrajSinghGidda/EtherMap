@@ -3,63 +3,67 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Files — EtherMap</title>
+<title>Archive — EtherMap</title>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
 <style>
 :root {
-  --base:#191724; --surface:#1f1d2e; --overlay:#26233a; --glass:rgba(224,222,244,0.08);
-  --muted:#908caa; --subtle:#9f9ab8; --text:#e0def4;
-  --love:#eb6f92; --gold:#f6c177; --rose:#ebbcba; --pine:#31748f; --foam:#9ccfd8;
+  --base:#0a1220; --surface:#131b2b; --overlay:#1c2436; --glass:rgba(240,242,245,0.08);
+  --muted:#555c65; --subtle:#b8b8b6; --text:#f0f2f5;
+  --love:#e06b58; --gold:#b8b5a2; --rose:#e48b7a; --pine:#889889; --foam:#d0cac7;
 }
 [data-theme="light"] {
-  --base:#faf4ed; --surface:#fffaf6; --overlay:#f2e9e1; --glass:rgba(43,36,48,0.05);
-  --muted:#6e6a86; --subtle:#797593; --text:#575279;
-  --love:#b4637a; --gold:#ea9d34; --rose:#d7827e; --pine:#286983; --foam:#56949f;
+  --base:#f0f2f5; --surface:#ffffff; --overlay:#e2e4e9; --glass:rgba(10,18,32,0.05);
+  --muted:#555c65; --subtle:#7a8a7d; --text:#0a1220;
+  --love:#e06b58; --gold:#b8b5a2; --rose:#d4786b; --pine:#7a8a7d; --foam:#555c65;
 }
 html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:var(--text);transition: background 0.3s, color 0.3s;}
 .topnav{position:fixed;left:0;right:0;top:0;padding:12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid var(--glass)}
-.topnav a{margin-left:14px;text-decoration:none;color:var(--pine);font-weight:700}
+.topnav a{margin-left:14px;text-decoration:none;color:var(--pine);font-weight:700; display:flex; align-items:center; gap:6px;}
 .topnav a.active { color:var(--rose); }
-.theme-toggle { margin-left:14px; cursor:pointer; font-size:18px; user-select:none; }
+.theme-toggle { margin-left:14px; cursor:pointer; font-size:18px; user-select:none; color:var(--subtle); }
 
 .container{padding:120px 20px 40px;display:flex;justify-content:center}
 .card{width:900px;background:var(--surface);padding:24px;border-radius:0;border:1px solid var(--glass);box-shadow:none}
-h1{color:var(--pine);text-align:left;margin:0 0 14px 0}
+h1{color:var(--pine);text-align:left;margin:0 0 14px 0; display:flex; align-items:center; gap:10px;}
 .table{margin-top:12px;border-radius:0;overflow:hidden;background:var(--overlay);border:1px solid var(--glass)}
-.row{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--glass);align-items:center}
-.row:last-child{border-bottom:none}
-.filename{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px}
-.filename a{color:var(--foam);text-decoration:none}
-.filename a:hover{text-decoration:underline}
-.meta{width:180px;text-align:right;color:var(--muted);font-size:0.95rem}
-.actions{width:360px;text-align:right}
-.btn{display:inline-block;background:var(--pine);color:var(--text);border:1px solid var(--glass);padding:8px 10px;border-radius:0;cursor:pointer;margin-left:8px;text-decoration:none}
-.btn:hover{background:var(--foam);color:var(--base)}
-.small{color:var(--muted);font-size:0.9rem}
-.footer{margin-top:18px;text-align:center}
+.row { display:flex; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--glass); align-items:center; }
+.row:last-child { border-bottom:none; }
+.filename { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:12px; display:flex; align-items:center; gap:8px; }
+.filename a { color:var(--foam); text-decoration:none; }
+.filename a:hover { text-decoration:underline; }
+.meta { width:180px; text-align:right; color:var(--muted); font-size:0.9rem; }
+.actions { width:380px; text-align:right; display:flex; gap:6px; justify-content:flex-end; }
+.btn { display:inline-flex; align-items:center; gap:6px; background:var(--pine); color:var(--text); border:none; padding:8px 10px; border-radius:0; cursor:pointer; text-decoration:none; font-size: 0.85rem; font-weight: 700;}
+.btn:hover { background:var(--foam); color:var(--base); }
+.btn-alt { background: var(--overlay); border: 1px solid var(--glass); }
+.btn-danger { color: var(--love); background: transparent; border: 1px solid var(--love); }
+.btn-danger:hover { background: var(--love); color: var(--text); }
+.small { color:var(--muted); font-size:0.9rem; }
+.footer { margin-top:18px; text-align:center; }
 </style>
 </head>
 <body data-theme="dark">
 <nav class="topnav">
   <div style="font-weight:700;color:var(--pine)">EtherMap</div>
   <div style="margin-left:auto; display:flex; align-items:center;">
-    <a href="/">Visualization</a>
-    <a href="/upload">Upload</a>
-    <a href="/files" class="active">Files</a>
-    <a href="#" id="logout">Logout</a>
+    <a href="/"><i class="ph ph-graph"></i> Visualization</a>
+    <a href="/upload"><i class="ph ph-upload-simple"></i> Upload</a>
+    <a href="/files" class="active"><i class="ph ph-folder"></i> Files</a>
+    <a href="#" id="logout"><i class="ph ph-sign-out"></i> Logout</a>
     <span class="theme-toggle" id="themeToggle" title="Toggle Theme">🌓</span>
   </div>
 </nav>
 
 <main class="container">
   <div class="card">
-    <h1>Archive</h1>
+    <h1><i class="ph-fill ph-archive"></i> Archive</h1>
     <div id="status" class="small" style="margin-bottom:10px;"></div>
     <div id="filesArea" class="table">
       <div style="padding:14px" class="small">Synchronizing index…</div>
     </div>
 
     <div class="footer">
-      <button id="refresh" class="btn">Refresh Index</button>
+      <button id="refresh" class="btn btn-alt"><i class="ph-bold ph-arrows-clockwise"></i> Refresh Index</button>
     </div>
   </div>
 </main>
@@ -81,7 +85,7 @@ async function fetchJson(url, opts){ const r = await fetch(url, Object.assign({c
 function setStatus(msg, isError){
   const el = document.getElementById('status');
   el.textContent = msg || '';
-  el.style.color = isError ? 'var(--rose)' : 'var(--muted)';
+  el.style.color = isError ? 'var(--love)' : 'var(--muted)';
 }
 
 function mkRow(file){
@@ -90,6 +94,7 @@ function mkRow(file){
 
   const name = document.createElement('div');
   name.className = 'filename';
+  name.innerHTML = `<i class="ph ph-file-text" style="color:var(--muted)"></i>`;
   const a = document.createElement('a');
   a.href = '/files/' + encodeURIComponent(file.name);
   a.textContent = file.name;
@@ -105,28 +110,25 @@ function mkRow(file){
   const dl = document.createElement('a');
   dl.href = '/files/' + encodeURIComponent(file.name);
   dl.className = 'btn';
-  dl.textContent = 'Download';
+  dl.innerHTML = '<i class="ph ph-download-simple"></i> DL';
 
   const tbtn = document.createElement('button');
-  tbtn.className = 'btn';
-  tbtn.textContent = 'Temp link';
+  tbtn.className = 'btn btn-alt';
+  tbtn.innerHTML = '<i class="ph ph-link"></i> Temp';
   tbtn.addEventListener('click', async ()=>{
     tbtn.disabled = true;
-    tbtn.textContent = 'Generating…';
     try{
       const res = await fetchJson('/api/files/temp', {method:'POST', body: JSON.stringify({name: file.name, ttl: 300}), headers: {'Content-Type':'application/json'}});
-      if(res.ok && res.url){ window.open(res.url, '_blank'); tbtn.textContent = 'Opened'; setStatus('Temporary download link created.', false); }
-      else { setStatus('Could not create temporary link.', true); tbtn.textContent = 'Temp link'; }
-    }catch(err){ setStatus('Error creating temporary link: '+err.message, true); tbtn.textContent = 'Temp link'; }
+      if(res.ok && res.url){ window.open(res.url, '_blank'); setStatus('Temporary download link created.', false); }
+      else { setStatus('Could not create temporary link.', true); }
+    }catch(err){ setStatus('Error creating temporary link: '+err.message, true); }
     tbtn.disabled = false;
   });
 
-  acts.appendChild(dl);
-  acts.appendChild(tbtn);
   const rbtn = document.createElement('button');
-  rbtn.className = 'btn';
-  rbtn.textContent = 'Rename';
-  rbtn.addEventListener('click', async ()=>{
+  rbtn.className = 'btn btn-alt';
+  rbtn.innerHTML = '<i class="ph ph-pencil"></i>';
+  rbtn.onclick = async ()=>{
     const next = prompt('Rename file to:', file.name);
     if(!next || next === file.name) return;
     try{
@@ -134,18 +136,22 @@ function mkRow(file){
       if(res.ok){ setStatus(`Renamed ${file.name} → ${next}`, false); loadFiles(); }
       else setStatus('Rename failed.', true);
     }catch(err){ setStatus('Rename failed: '+err.message, true); }
-  });
+  };
+
   const xbtn = document.createElement('button');
-  xbtn.className = 'btn';
-  xbtn.textContent = 'Delete';
-  xbtn.addEventListener('click', async ()=>{
+  xbtn.className = 'btn btn-danger';
+  xbtn.innerHTML = '<i class="ph ph-trash"></i>';
+  xbtn.onclick = async ()=>{
     if(!confirm(`Delete ${file.name}?`)) return;
     try{
       const res = await fetchJson('/api/files/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:file.name})});
       if(res.ok){ setStatus(`Deleted ${file.name}`, false); loadFiles(); }
       else setStatus('Delete failed.', true);
     }catch(err){ setStatus('Delete failed: '+err.message, true); }
-  });
+  };
+
+  acts.appendChild(dl);
+  acts.appendChild(tbtn);
   acts.appendChild(rbtn);
   acts.appendChild(xbtn);
 
