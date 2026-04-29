@@ -36,6 +36,19 @@
   button { background:var(--pine); cursor:pointer; font-weight:700; }
   button:hover { background:var(--foam); color:var(--base); }
   #log, #alerts, #chatLog, #devicesList { max-height:180px; overflow:auto; border:1px solid var(--glass); border-radius:0; background:var(--overlay); padding:8px; }
+  .log-filter-wrap { margin-bottom: 8px; display: flex; gap: 4px; }
+  .log-filter-wrap input { flex: 1; font-size: 12px; padding: 4px 8px; background: var(--base); color: var(--text); border: 1px solid var(--glass); }
+  
+  /* Node Detail Card */
+  .node-card {
+    position: fixed; padding: 12px; background: var(--surface); border: 1px solid var(--pine);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3); pointer-events: none; z-index: 100;
+    display: none; min-width: 220px; border-radius: 4px;
+  }
+  .node-card h4 { margin: 0 0 8px 0; color: var(--pine); border-bottom: 1px solid var(--glass); padding-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .node-card div { font-size: 11px; margin-bottom: 4px; display: flex; justify-content: space-between; gap: 12px; }
+  .node-card b { color: var(--muted); font-weight: 500; }
+  .node-card i { color: var(--foam); font-style: normal; }
   .device-row { display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--glass); }
   .device-row:last-child { border-bottom:none; }
   .chip { display:inline-block; padding:2px 6px; border-radius:0; background:var(--overlay); border:1px solid var(--glass); font-size:11px; color:var(--muted); }
@@ -50,6 +63,7 @@
   @keyframes dash {
     to { stroke-dashoffset: -24; }
   }
+  .link-label { fill: var(--rose); font-size: 10px; font-weight: 700; pointer-events: none; }
   .state-connected { fill: var(--foam); }
   .state-transferring { fill: var(--gold); }
   .state-idle { fill: var(--muted); }
@@ -82,6 +96,8 @@
     <span class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">🌓</span>
   </div>
 </nav>
+
+<div id="nodeCard" class="node-card"></div>
 
 <div class="app">
   <div class="card canvas">
@@ -155,6 +171,10 @@
       <details class="section" open>
         <summary><i class="ph-bold ph-terminal-window"></i> Event log</summary>
         <div class="section-body">
+          <div class="log-filter-wrap">
+            <i class="ph ph-magnifying-glass" style="align-self:center; color:var(--muted)"></i>
+            <input id="logFilter" placeholder="Filter activity...">
+          </div>
           <div id="log"></div>
         </div>
       </details>
@@ -322,22 +342,56 @@ function initViz(){
       .on('drag',(e,d)=>{ d.fx=e.x; d.fy=e.y; })
       .on('end',(e,d)=>{ if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
     );
-    enter.append('circle').attr('r', d => d.id === 'SERVER' ? 18 : 12);
+    enter.append('circle').attr('r', d => d.id === 'SERVER' ? 18 : 12)
+      .on('mouseover', (ev, d) => showNodeCard(ev, d))
+      .on('mouseout', () => hideNodeCard());
     enter.append('text').attr('class','node-icon').attr('dy',4).attr('text-anchor','middle').style('font-size', '12px');
     enter.append('text').attr('class','node-label').attr('dy',24).attr('text-anchor','middle');
     
     nodeSel.merge(enter).select('circle').attr('class', d => d.state === 'transferring' ? 'state-transferring' : d.state === 'error' ? 'state-error' : d.state === 'idle' ? 'state-idle' : 'state-connected');
-    nodeSel.merge(enter).select('text.node-icon').text(d => d.icon || (d.id === 'SERVER' ? '🌐' : '💻'));
+    nodeSel.merge(enter).select('text.node-icon').each(function(d) {
+      const el = d3.select(this);
+      const icon = d.icon || (d.id === 'SERVER' ? '🌐' : '💻');
+      if(icon.includes('<i')) {
+        // For Phosphor icons (though SVG text isn't ideal for HTML strings, we'll fallback to emoji for SVG text and use the icons in the sidebar)
+        el.text(d.id === 'SERVER' ? '🌐' : '💻'); 
+      } else {
+        el.text(icon);
+      }
+    });
     nodeSel.merge(enter).select('text.node-label').text(d => d.label || d.id);
     nodeSel.exit().remove();
     sim.nodes(nodes).on('tick',()=>{
       linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
       nodeG.selectAll('g.node').attr('transform',d=>`translate(${d.x},${d.y})`);
+      
+      // Update floating labels
+      const labels = linkG.selectAll('text.link-label').data(links.filter(l=>l.active && l.label), d=>d.id);
+      labels.join('text').attr('class','link-label').attr('text-anchor','middle')
+        .attr('x', d => (d.source.x + d.target.x) / 2)
+        .attr('y', d => (d.source.y + d.target.y) / 2 - 8)
+        .text(d => d.label);
     });
     sim.force('link').links(links);
     sim.alpha(0.7).restart();
     document.getElementById('node_count').textContent = nodes.length;
   }
+
+  function showNodeCard(ev, d){
+    const el = document.getElementById('nodeCard');
+    const meta = d.meta || {};
+    el.innerHTML = `
+      <h4><i class="ph-fill ph-cpu"></i> ${escapeHtml(d.label || d.id)}</h4>
+      <div><b>ID:</b> <i>${escapeHtml(d.id)}</i></div>
+      <div><b>Type:</b> <i>${escapeHtml(d.device_type || 'Unknown')}</i></div>
+      <div><b>Last Seen:</b> <i>${new Date().toLocaleTimeString()}</i></div>
+      ${meta.ua ? `<div><b>OS/UA:</b> <i>${escapeHtml(meta.ua)}</i></div>` : ''}
+    `;
+    el.style.display = 'block';
+    el.style.left = (ev.pageX + 10) + 'px';
+    el.style.top = (ev.pageY + 10) + 'px';
+  }
+  function hideNodeCard(){ document.getElementById('nodeCard').style.display = 'none'; }
 
   function upsertNode(id, label, icon){
     if(!id) return null;
@@ -359,16 +413,18 @@ function initViz(){
   }
 
   function edgeKey(src, dst, kind){ return `${src}->${dst}:${kind || 'flow'}`; }
-  function upsertEdge(src, dst, kind, active){
+  function upsertEdge(src, dst, kind, active, label){
     if(!src || !dst) return;
     const s = upsertNode(src);
     const t = upsertNode(dst);
     const id = edgeKey(src,dst,kind);
     if(!linksMap.has(id)){
-      const edge = {id, source:s, target:t, active: !!active, kind: kind || 'flow'};
+      const edge = {id, source:s, target:t, active: !!active, kind: kind || 'flow', label};
       links.push(edge); linksMap.set(id,edge);
     } else {
-      linksMap.get(id).active = !!active;
+      const edge = linksMap.get(id);
+      edge.active = !!active;
+      if(label) edge.label = label;
     }
     redraw();
   }
@@ -493,11 +549,18 @@ function applyEvent(evt, record){
     addLog(t,d);
   }
   handleRules(evt);
-  if(src) graph.upsertNode(src, d.name || d.label || src, d.icon);
+  if(src) {
+    const node = graph.upsertNode(src, d.name || d.label || src, d.icon);
+    if(node) {
+      node.device_type = d.device_type || node.device_type;
+      node.meta = {...(node.meta || {}), ...d};
+    }
+  }
   if(dst) graph.upsertNode(dst, dst, dst === 'SERVER' ? '🌐' : null);
+  
   if(t === 'put_start' || t === 'get_start'){
     graph.setNodeState(src,'transferring',d.name || src, d.icon);
-    graph.upsertEdge(src, dst || 'SERVER', d.direction || t, true);
+    graph.upsertEdge(src, dst || 'SERVER', d.direction || t, true, d.file || d.type);
   } else if(t === 'put_done' || t === 'get_done'){
     graph.setNodeState(src,'connected',d.name || src, d.icon);
     graph.upsertEdge(src, dst || 'SERVER', d.direction || t, false);
@@ -560,7 +623,8 @@ function renderDevices(devs){
   devs.forEach(d=>{
     const row = document.createElement('div');
     row.className = 'device-row';
-    row.innerHTML = `<div>${escapeHtml(d.icon || '💻')} <strong>${escapeHtml(d.name || d.client_id)}</strong><div class="muted">${escapeHtml(d.client_id)} · ${escapeHtml(d.device_type || 'client')}</div></div>`;
+    const iconHtml = d.icon || '<i class="ph ph-desktop"></i>';
+    row.innerHTML = `<div>${iconHtml} <strong>${escapeHtml(d.name || d.client_id)}</strong><div class="muted">${escapeHtml(d.client_id)} · ${escapeHtml(d.device_type || 'client')}</div></div>`;
     const editBtn = document.createElement('button');
     editBtn.textContent = 'Edit';
     editBtn.onclick = async () => {
@@ -718,14 +782,25 @@ document.getElementById('importState').addEventListener('change', async (ev)=>{
 });
 
 // Devices
+document.getElementById('logFilter').oninput = (e) => {
+  const q = e.target.value.toLowerCase();
+  const rows = document.getElementById('log').childNodes;
+  rows.forEach(r => {
+    const txt = r.textContent.toLowerCase();
+    r.style.display = txt.includes(q) ? 'block' : 'none';
+  });
+};
+
 document.getElementById('refreshDevices').addEventListener('click', fetchDevices);
 document.getElementById('registerDevice').addEventListener('click', async ()=>{
   const name = prompt('Device name', navigator.platform || CLIENT_ID) || CLIENT_ID;
-  const device_type = prompt('Device type', 'client') || 'client';
-  const icon = prompt('Device icon', '💻') || '💻';
+  const device_type = prompt('Device type (client/server/mobile/iot)', 'client') || 'client';
+  const icon = prompt('Device icon (Phosphor name or emoji, e.g. ph-desktop)', 'ph-desktop') || 'ph-desktop';
+  const finalIcon = icon.startsWith('ph-') ? `<i class="ph ph-${icon.replace('ph-','')}"></i>` : icon;
+  
   try{
-    await apiFetch('/api/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,name,device_type,icon})});
-    sendLog({type:'client_connected',detail:{ip:CLIENT_ID,src:CLIENT_ID,dst:'SERVER',name,device_type,icon}});
+    await apiFetch('/api/devices/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,name,device_type,icon:finalIcon})});
+    sendLog({type:'client_connected',detail:{ip:CLIENT_ID,src:CLIENT_ID,dst:'SERVER',name,device_type,icon:finalIcon}});
     fetchDevices();
   } catch(e){ setUiStatus('Could not register device.', true); }
 });

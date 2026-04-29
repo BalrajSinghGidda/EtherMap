@@ -21,8 +21,9 @@
 - [x] **Custom Theme Implementation:** Applied the Omarchy color palette and matching light theme.
 - [x] **Icon Library:** Integrated Phosphor Icons across the entire app.
 - [x] **Advanced Feedback:** Added D3 sparklines and password strength meters.
-- [ ] **Enhanced Analytics:** Add more granular tracking for signaling frequency and file transfer speeds.
-- [ ] **Interactive Topology:** Allow users to "click" nodes to see detailed metadata or device history.
+- [x] **Interactive Topology:** Implemented hover metadata cards and floating link labels.
+- [x] **Activity Filtering:** Added search functionality to the live event log.
+- [x] **Project Documentation:** Generated a full project report in `report.md`.
 
 ## 💡 Key Lessons / Pitfalls
 - **Nix vs Pip:** Always prefer Nix for dependencies in this repo.
